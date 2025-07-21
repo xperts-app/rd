@@ -112,15 +112,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
 
     <script>
-        // Your web app's Firebase configuration
+        // *** NEW FIREBASE CONFIGURATION ***
         const firebaseConfig = {
-            apiKey: "AIzaSyBRbpcuPMwZN2mJ6sXhBNSXtSkU2sC1ANs",
-            authDomain: "randd-team-xperts.firebaseapp.com",
-            projectId: "randd-team-xperts",
-            storageBucket: "randd-team-xperts.firebasestorage.app",
-            messagingSenderId: "415321792639",
-            appId: "1:415321792639:web:3d4bb61a30af45f4e41f4a",
-            measurementId: "G-HF1H6EM548"
+            apiKey: "AIzaSyBBB2_DHwjdxZpMJYnTSC0BeQKCKP0xlWs",
+            authDomain: "xperts-auth.firebaseapp.com",
+            projectId: "xperts-auth",
+            storageBucket: "xperts-auth.firebasestorage.app",
+            messagingSenderId: "143568403446",
+            appId: "1:143568403446:web:669a8964aa88aab9b065d7",
+            measurementId: "G-082839CKEM"
         };
 
         // Initialize Firebase
@@ -147,7 +147,7 @@
                 title: title,
                 class: studentClass,
                 pdfUrl: pdfUrl,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp() // For ordering
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
                 statusEl.textContent = `Success! Test added.`;
@@ -157,7 +157,6 @@
             .catch((error) => {
                 statusEl.textContent = `Error: ${error.message}`;
                 statusEl.className = 'error';
-                console.error("Error adding document: ", error);
             })
             .finally(() => {
                 submitBtn.disabled = false;
