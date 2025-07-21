@@ -21,7 +21,7 @@
         header {
             display: flex;
             align-items: center;
-            margin-bottom: 20px; /* Adjusted margin */
+            margin-bottom: 20px;
         }
 
         .back-arrow {
@@ -45,7 +45,6 @@
             margin: 4px 0 0 0;
         }
 
-        /* New Search Bar Styles */
         .search-container {
             margin-bottom: 25px;
         }
@@ -111,7 +110,6 @@
             </div>
         </header>
         
-        <!-- New Search Bar -->
         <div class="search-container">
             <input type="search" id="search-input" placeholder="Search tests...">
         </div>
@@ -126,18 +124,17 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
 
     <script>
-        // Your web app's Firebase configuration
+        // *** NEW FIREBASE CONFIGURATION ***
         const firebaseConfig = {
-            apiKey: "AIzaSyBRbpcuPMwZN2mJ6sXhBNSXtSkU2sC1ANs",
-            authDomain: "randd-team-xperts.firebaseapp.com",
-            projectId: "randd-team-xperts",
-            storageBucket: "randd-team-xperts.firebasestorage.app",
-            messagingSenderId: "415321792639",
-            appId: "1:415321792639:web:3d4bb61a30af45f4e41f4a",
-            measurementId: "G-HF1H6EM548"
+            apiKey: "AIzaSyBBB2_DHwjdxZpMJYnTSC0BeQKCKP0xlWs",
+            authDomain: "xperts-auth.firebaseapp.com",
+            projectId: "xperts-auth",
+            storageBucket: "xperts-auth.firebasestorage.app",
+            messagingSenderId: "143568403446",
+            appId: "1:143568403446:web:669a8964aa88aab9b065d7",
+            measurementId: "G-082839CKEM"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -145,17 +142,14 @@
         const testCountEl = document.getElementById('test-count');
         const searchInput = document.getElementById('search-input');
         
-        let allTests = []; // Array to hold all fetched tests for searching
+        let allTests = [];
 
-        // Renders a list of tests to the screen
         function renderTests(testsToRender) {
-            testListContainer.innerHTML = ''; // Clear current list
-
+            testListContainer.innerHTML = '';
             if (testsToRender.length === 0) {
                  displayMessage("No tests match your search.");
                  return;
             }
-
             testsToRender.forEach(test => {
                 const link = document.createElement('a');
                 link.href = test.pdfUrl;
@@ -173,16 +167,15 @@
                 const studentClass = params.get('class');
 
                 if (!studentClass) {
-                    displayMessage("No class specified. Please add `?class=...` to the URL. <br>Example: ?class=11%20NEET");
+                    displayMessage("No class specified. Please add `?class=...` to the URL.");
                     testCountEl.textContent = "0 tests found";
-                    searchInput.style.display = 'none'; // Hide search if no class
+                    searchInput.style.display = 'none';
                     return;
                 }
 
-                // Fetch tests matching the class, ordered by creation time DESCENDING (newest first)
                 const querySnapshot = await db.collection("tests")
                                               .where("class", "==", studentClass)
-                                              .orderBy("createdAt", "desc") // <-- CHANGED TO 'desc'
+                                              .orderBy("createdAt", "desc")
                                               .get();
                 
                 const totalTests = querySnapshot.size;
@@ -190,16 +183,17 @@
 
                 if (querySnapshot.empty) {
                     displayMessage("No tests found for this class yet.");
-                    searchInput.style.display = 'none'; // Hide search if no tests
+                    searchInput.style.display = 'none';
                 } else {
                     allTests = querySnapshot.docs.map(doc => doc.data());
-                    renderTests(allTests); // Initial render of all tests
+                    searchInput.style.display = 'block';
+                    renderTests(allTests);
                 }
             } catch (error) {
                 console.error("Error fetching tests: ", error);
-                displayMessage("Failed to load tests. An error occurred.");
+                displayMessage("Failed to load tests. Please check console for an error about a missing index or security rules.");
                 testCountEl.textContent = "Error loading";
-                searchInput.style.display = 'none'; // Hide search on error
+                searchInput.style.display = 'none';
             }
         }
         
@@ -207,7 +201,6 @@
             testListContainer.innerHTML = `<div class="message-box">${message}</div>`;
         }
 
-        // Event listener for the search input
         searchInput.addEventListener('input', () => {
             const searchTerm = searchInput.value.toLowerCase().trim();
             const filteredTests = allTests.filter(test => 
