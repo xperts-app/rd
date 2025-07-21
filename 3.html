@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subject Test</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #F8F9FA;
+            color: #212529;
+        }
+
+        .main-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px; /* Adjusted margin */
+        }
+
+        .back-arrow {
+            font-size: 28px;
+            font-weight: bold;
+            text-decoration: none;
+            color: #333;
+            margin-right: 15px;
+            padding: 0 5px;
+        }
+
+        .header-title h1 {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: #6c757d;
+            margin: 4px 0 0 0;
+        }
+
+        /* New Search Bar Styles */
+        .search-container {
+            margin-bottom: 25px;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 1px solid #E9ECEF;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        #search-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        #test-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .test-item {
+            display: block;
+            background-color: #ffffff;
+            padding: 20px 25px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #212529;
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border: 1px solid #E9ECEF;
+        }
+
+        .test-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .message-box {
+            text-align: center;
+            font-size: 16px;
+            color: #6c757d;
+            padding: 50px 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            border: 1px solid #E9ECEF;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <header>
+            <a href="javascript:history.back()" class="back-arrow">←</a>
+            <div class="header-title">
+                <h1>Subject Test</h1>
+                <p id="test-count">Loading tests...</p>
+            </div>
+        </header>
+        
+        <!-- New Search Bar -->
+        <div class="search-container">
+            <input type="search" id="search-input" placeholder="Search tests...">
+        </div>
+
+        <main id="test-list-container">
+            <div class="message-box">Fetching data, please wait...</div>
+        </main>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBRbpcuPMwZN2mJ6sXhBNSXtSkU2sC1ANs",
+            authDomain: "randd-team-xperts.firebaseapp.com",
+            projectId: "randd-team-xperts",
+            storageBucket: "randd-team-xperts.firebasestorage.app",
+            messagingSenderId: "415321792639",
+            appId: "1:415321792639:web:3d4bb61a30af45f4e41f4a",
+            measurementId: "G-HF1H6EM548"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const testListContainer = document.getElementById('test-list-container');
+        const testCountEl = document.getElementById('test-count');
+        const searchInput = document.getElementById('search-input');
+        
+        let allTests = []; // Array to hold all fetched tests for searching
+
+        // Renders a list of tests to the screen
+        function renderTests(testsToRender) {
+            testListContainer.innerHTML = ''; // Clear current list
+
+            if (testsToRender.length === 0) {
+                 displayMessage("No tests match your search.");
+                 return;
+            }
+
+            testsToRender.forEach(test => {
+                const link = document.createElement('a');
+                link.href = test.pdfUrl;
+                link.className = 'test-item';
+                link.textContent = test.title;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                testListContainer.appendChild(link);
+            });
+        }
+
+        async function loadTests() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const studentClass = params.get('class');
+
+                if (!studentClass) {
+                    displayMessage("No class specified. Please add `?class=...` to the URL. <br>Example: ?class=11%20NEET");
+                    testCountEl.textContent = "0 tests found";
+                    searchInput.style.display = 'none'; // Hide search if no class
+                    return;
+                }
+
+                // Fetch tests matching the class, ordered by creation time DESCENDING (newest first)
+                const querySnapshot = await db.collection("tests")
+                                              .where("class", "==", studentClass)
+                                              .orderBy("createdAt", "desc") // <-- CHANGED TO 'desc'
+                                              .get();
+                
+                const totalTests = querySnapshot.size;
+                testCountEl.textContent = `0/${totalTests} Tests completed`;
+
+                if (querySnapshot.empty) {
+                    displayMessage("No tests found for this class yet.");
+                    searchInput.style.display = 'none'; // Hide search if no tests
+                } else {
+                    allTests = querySnapshot.docs.map(doc => doc.data());
+                    renderTests(allTests); // Initial render of all tests
+                }
+            } catch (error) {
+                console.error("Error fetching tests: ", error);
+                displayMessage("Failed to load tests. An error occurred.");
+                testCountEl.textContent = "Error loading";
+                searchInput.style.display = 'none'; // Hide search on error
+            }
+        }
+        
+        function displayMessage(message) {
+            testListContainer.innerHTML = `<div class="message-box">${message}</div>`;
+        }
+
+        // Event listener for the search input
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const filteredTests = allTests.filter(test => 
+                test.title.toLowerCase().includes(searchTerm)
+            );
+            renderTests(filteredTests);
+        });
+
+        window.onload = loadTests;
+    </script>
+</body>
+</html>
