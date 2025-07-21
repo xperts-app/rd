@@ -8,7 +8,7 @@
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #F8F9FA; /* A light grey background like the image */
+            background-color: #F8F9FA;
             color: #212529;
         }
 
@@ -21,7 +21,7 @@
         header {
             display: flex;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px; /* Adjusted margin */
         }
 
         .back-arrow {
@@ -45,17 +45,36 @@
             margin: 4px 0 0 0;
         }
 
+        /* New Search Bar Styles */
+        .search-container {
+            margin-bottom: 25px;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 1px solid #E9ECEF;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        #search-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
         #test-list-container {
             display: flex;
             flex-direction: column;
-            gap: 15px; /* Spacing between test items */
+            gap: 15px;
         }
 
         .test-item {
             display: block;
             background-color: #ffffff;
             padding: 20px 25px;
-            border-radius: 12px; /* Rounded corners for the cards */
+            border-radius: 12px;
             text-decoration: none;
             color: #212529;
             font-size: 16px;
@@ -91,6 +110,11 @@
                 <p id="test-count">Loading tests...</p>
             </div>
         </header>
+        
+        <!-- New Search Bar -->
+        <div class="search-container">
+            <input type="search" id="search-input" placeholder="Search tests...">
+        </div>
 
         <main id="test-list-container">
             <div class="message-box">Fetching data, please wait...</div>
@@ -119,6 +143,29 @@
 
         const testListContainer = document.getElementById('test-list-container');
         const testCountEl = document.getElementById('test-count');
+        const searchInput = document.getElementById('search-input');
+        
+        let allTests = []; // Array to hold all fetched tests for searching
+
+        // Renders a list of tests to the screen
+        function renderTests(testsToRender) {
+            testListContainer.innerHTML = ''; // Clear current list
+
+            if (testsToRender.length === 0) {
+                 displayMessage("No tests match your search.");
+                 return;
+            }
+
+            testsToRender.forEach(test => {
+                const link = document.createElement('a');
+                link.href = test.pdfUrl;
+                link.className = 'test-item';
+                link.textContent = test.title;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                testListContainer.appendChild(link);
+            });
+        }
 
         async function loadTests() {
             try {
@@ -128,48 +175,46 @@
                 if (!studentClass) {
                     displayMessage("No class specified. Please add `?class=...` to the URL. <br>Example: ?class=11%20NEET");
                     testCountEl.textContent = "0 tests found";
+                    searchInput.style.display = 'none'; // Hide search if no class
                     return;
                 }
 
-                // Fetch tests matching the class, ordered by creation time for consistency
+                // Fetch tests matching the class, ordered by creation time DESCENDING (newest first)
                 const querySnapshot = await db.collection("tests")
                                               .where("class", "==", studentClass)
-                                              .orderBy("createdAt", "asc")
+                                              .orderBy("createdAt", "desc") // <-- CHANGED TO 'desc'
                                               .get();
                 
                 const totalTests = querySnapshot.size;
-                // This mimics the "0/19 Tests completed" format from the image
                 testCountEl.textContent = `0/${totalTests} Tests completed`;
-
-                // Clear initial message
-                testListContainer.innerHTML = '';
 
                 if (querySnapshot.empty) {
                     displayMessage("No tests found for this class yet.");
+                    searchInput.style.display = 'none'; // Hide search if no tests
                 } else {
-                    querySnapshot.forEach((doc) => {
-                        const test = doc.data();
-                        
-                        const link = document.createElement('a');
-                        link.href = test.pdfUrl;
-                        link.className = 'test-item';
-                        link.textContent = test.title;
-                        link.target = '_blank'; // Open PDF in a new tab
-                        link.rel = 'noopener noreferrer';
-                        
-                        testListContainer.appendChild(link);
-                    });
+                    allTests = querySnapshot.docs.map(doc => doc.data());
+                    renderTests(allTests); // Initial render of all tests
                 }
             } catch (error) {
                 console.error("Error fetching tests: ", error);
                 displayMessage("Failed to load tests. An error occurred.");
                 testCountEl.textContent = "Error loading";
+                searchInput.style.display = 'none'; // Hide search on error
             }
         }
         
         function displayMessage(message) {
             testListContainer.innerHTML = `<div class="message-box">${message}</div>`;
         }
+
+        // Event listener for the search input
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const filteredTests = allTests.filter(test => 
+                test.title.toLowerCase().includes(searchTerm)
+            );
+            renderTests(filteredTests);
+        });
 
         window.onload = loadTests;
     </script>
