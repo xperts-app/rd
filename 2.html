@@ -3,213 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subject Test</title>
+    <title>Subject Tests</title>
     <style>
         body {
-            margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #F8F9FA;
-            color: #212529;
+            background-color: #f4f5f7;
+            margin: 0;
+            padding: 0 16px;
         }
-
-        .main-container {
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-
-        header {
+        .header {
+            padding: 20px 0;
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
         }
-
         .back-arrow {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             text-decoration: none;
             color: #333;
             margin-right: 15px;
-            padding: 0 5px;
         }
-
         .header-title h1 {
-            font-size: 20px;
-            font-weight: bold;
+            font-size: 22px;
+            color: #1c1c1e;
             margin: 0;
         }
-
         .header-title p {
             font-size: 14px;
-            color: #6c757d;
-            margin: 4px 0 0 0;
+            color: #8e8e93;
+            margin: 4px 0 0;
         }
-
-        .search-container {
-            margin-bottom: 25px;
-        }
-
-        #search-input {
+        .search-bar {
             width: 100%;
-            padding: 15px 20px;
-            border: 1px solid #E9ECEF;
-            border-radius: 12px;
-            font-size: 16px;
+            padding: 12px 15px;
+            margin: 0 auto 20px;
             box-sizing: border-box;
-            outline: none;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            display: block;
         }
-        #search-input:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        #test-list {
+            padding-bottom: 20px;
         }
-
-        #test-list-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
         .test-item {
             display: block;
-            background-color: #ffffff;
-            padding: 20px 25px;
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 12px;
             border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             text-decoration: none;
-            color: #212529;
-            font-size: 16px;
-            font-weight: 500;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            border: 1px solid #E9ECEF;
+            color: #1c1c1e;
+            font-size: 17px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-
         .test-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
         }
-        
-        .message-box {
+        #loader {
             text-align: center;
-            font-size: 16px;
-            color: #6c757d;
-            padding: 50px 20px;
-            background-color: #fff;
-            border-radius: 12px;
-            border: 1px solid #E9ECEF;
+            padding: 50px;
+            font-size: 18px;
+            color: #888;
         }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        <header>
-            <a href="javascript:history.back()" class="back-arrow">←</a>
-            <div class="header-title">
-                <h1>Subject Test</h1>
-                <p id="test-count">Loading tests...</p>
-            </div>
-        </header>
-        
-        <div class="search-container">
-            <input type="search" id="search-input" placeholder="Search tests...">
+    <div class="header">
+        <a href="#" class="back-arrow" onclick="history.back(); return false;">←</a>
+        <div class="header-title">
+            <h1>Subject Test</h1>
+            <p id="completionStatus">0/0 Tests completed</p>
         </div>
+    </div>
 
-        <main id="test-list-container">
-            <div class="message-box">Fetching data, please wait...</div>
-        </main>
+    <input type="text" id="searchBar" class="search-bar" placeholder="Search for a test...">
+
+    <div id="test-list">
+        <div id="loader">Loading tests...</div>
     </div>
 
     <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-        // *** NEW FIREBASE CONFIGURATION ***
+        // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBBB2_DHwjdxZpMJYnTSC0BeQKCKP0xlWs",
-            authDomain: "xperts-auth.firebaseapp.com",
-            projectId: "xperts-auth",
-            storageBucket: "xperts-auth.firebasestorage.app",
-            messagingSenderId: "143568403446",
-            appId: "1:143568403446:web:669a8964aa88aab9b065d7",
-            measurementId: "G-082839CKEM"
+            apiKey: "AIzaSyBJtOpfO8krZY8K2rCv8Ma8iCjEsGwFqvo",
+            authDomain: "test-pdf-upload-c1617.firebaseapp.com",
+            projectId: "test-pdf-upload-c1617",
+            storageBucket: "test-pdf-upload-c1617.firebasestorage.app",
+            messagingSenderId: "122854901734",
+            appId: "1:122854901734:web:f3663cbfe2981139763827",
+            measurementId: "G-LEG479C2XT"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const testListContainer = document.getElementById('test-list-container');
-        const testCountEl = document.getElementById('test-count');
-        const searchInput = document.getElementById('search-input');
-        
-        let allTests = [];
+        const testListContainer = document.getElementById('test-list');
+        const loader = document.getElementById('loader');
+        const completionStatus = document.getElementById('completionStatus');
+        const searchBar = document.getElementById('searchBar');
 
-        function renderTests(testsToRender) {
-            testListContainer.innerHTML = '';
-            if (testsToRender.length === 0) {
-                 displayMessage("No tests match your search.");
-                 return;
-            }
-            testsToRender.forEach(test => {
-                const link = document.createElement('a');
-                link.href = test.pdfUrl;
-                link.className = 'test-item';
-                link.textContent = test.title;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                testListContainer.appendChild(link);
-            });
-        }
-
-        async function loadTests() {
+        // Function to fetch and display tests
+        async function fetchTests() {
             try {
-                const params = new URLSearchParams(window.location.search);
-                const studentClass = params.get('class');
+                // Check for class filter in URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const classFilter = urlParams.get('class');
 
-                if (!studentClass) {
-                    displayMessage("No class specified. Please add `?class=...` to the URL.");
-                    testCountEl.textContent = "0 tests found";
-                    searchInput.style.display = 'none';
+                let query = db.collection("tests").orderBy("createdAt", "desc");
+
+                if (classFilter) {
+                    query = query.where("class", "==", classFilter);
+                    document.title = `${classFilter} Tests`; // Update page title
+                }
+
+                const snapshot = await query.get();
+
+                // Clear loader and current list
+                testListContainer.innerHTML = '';
+
+                if (snapshot.empty) {
+                    testListContainer.innerHTML = '<p style="text-align: center; color: #888;">No tests found for this selection.</p>';
+                    completionStatus.textContent = `0/0 Tests completed`;
                     return;
                 }
 
-                const querySnapshot = await db.collection("tests")
-                                              .where("class", "==", studentClass)
-                                              .orderBy("createdAt", "desc")
-                                              .get();
-                
-                const totalTests = querySnapshot.size;
-                testCountEl.textContent = `0/${totalTests} Tests completed`;
+                completionStatus.textContent = `0/${snapshot.size} Tests completed`;
 
-                if (querySnapshot.empty) {
-                    displayMessage("No tests found for this class yet.");
-                    searchInput.style.display = 'none';
-                } else {
-                    allTests = querySnapshot.docs.map(doc => doc.data());
-                    searchInput.style.display = 'block';
-                    renderTests(allTests);
-                }
+                snapshot.forEach(doc => {
+                    const test = doc.data();
+                    const testItem = document.createElement('a');
+                    testItem.href = test.url;
+                    testItem.className = 'test-item';
+                    testItem.target = '_blank'; // Open link in new tab
+                    testItem.rel = 'noopener noreferrer';
+                    testItem.textContent = test.title;
+                    testListContainer.appendChild(testItem);
+                });
+
             } catch (error) {
                 console.error("Error fetching tests: ", error);
-                displayMessage("Failed to load tests. Please check console for an error about a missing index or security rules.");
-                testCountEl.textContent = "Error loading";
-                searchInput.style.display = 'none';
+                loader.textContent = 'Failed to load tests. Please try again later.';
             }
         }
-        
-        function displayMessage(message) {
-            testListContainer.innerHTML = `<div class="message-box">${message}</div>`;
-        }
 
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const filteredTests = allTests.filter(test => 
-                test.title.toLowerCase().includes(searchTerm)
-            );
-            renderTests(filteredTests);
+        // Search functionality
+        searchBar.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const allTests = document.querySelectorAll('.test-item');
+
+            allTests.forEach(testEl => {
+                const title = testEl.textContent.toLowerCase();
+                if (title.includes(searchTerm)) {
+                    testEl.style.display = 'block';
+                } else {
+                    testEl.style.display = 'none';
+                }
+            });
         });
 
-        window.onload = loadTests;
+        // Initial fetch on page load
+        document.addEventListener('DOMContentLoaded', fetchTests);
+
     </script>
+
 </body>
 </html>
