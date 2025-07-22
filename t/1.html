@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Create Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-primary: #1c1e21;
+            --text-secondary: #606770;
+            --accent: #0866ff;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background); margin: 0; padding: 20px; color: var(--text-primary); }
+        .container { max-width: 900px; margin: auto; background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        h1, h2 { text-align: center; color: var(--text-primary); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+        input[type="text"], select, textarea { width: 100%; padding: 12px; border: 1px solid #ccd0d5; border-radius: 6px; box-sizing: border-box; font-size: 1rem; font-family: 'Inter', sans-serif; }
+        .btn { display: inline-block; padding: 12px 20px; background-color: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; text-align: center; font-size: 1rem; font-weight: 600; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-add { background-color: var(--success); margin-top: 10px; }
+        .btn-submit { background-color: var(--danger); width: 100%; font-size: 1.2rem; padding: 15px; }
+        .question-block { border: 1px solid #e0e0e0; padding: 20px; margin-top: 20px; border-radius: 8px; background-color: #f7f8fa; }
+        .option-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .info { font-size: 0.9em; color: var(--text-secondary); margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        <h2>Create a New Test</h2>
+        <form id="createTestForm">
+            <div class="form-group">
+                <label for="testName">Test Name</label>
+                <input type="text" id="testName" placeholder="e.g., Botany Full Test 1" required>
+            </div>
+            <div class="form-group">
+                <label for="className">Class</label>
+                <input type="text" id="className" placeholder="e.g., 10, 12, NEET" required>
+            </div>
+            <div id="questionsContainer"></div>
+            <button type="button" class="btn btn-add" id="addQuestionBtn">Add Question</button>
+            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e0e0e0;">
+            <button type="submit" class="btn btn-submit">Save Test to Database</button>
+        </form>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        // Firebase config and all JavaScript from the first response for 1.html remains unchanged.
+        // It is already functional.
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM",
+            authDomain: "tests-data-with-leaderboard.firebaseapp.com",
+            projectId: "tests-data-with-leaderboard",
+            storageBucket: "tests-data-with-leaderboard.firebasestorage.app",
+            messagingSenderId: "884648979462",
+            appId: "1:884648979462:web:446df6ccb02bf73397e787",
+            measurementId: "G-701ZP61XZT"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let questionCount = 0;
+        function addQuestionField() {
+            questionCount++;
+            const questionsContainer = document.getElementById('questionsContainer');
+            const questionBlock = document.createElement('div');
+            questionBlock.className = 'question-block';
+            questionBlock.id = `question-block-${questionCount}`;
+            questionBlock.innerHTML = `
+                <h3>Question ${questionCount}</h3>
+                <div class="form-group"><label for="q-text-${questionCount}">Question Text or Image URL</label><input type="text" id="q-text-${questionCount}" class="question-text" placeholder="Enter question or image URL" required><p class="info">If this is an image, paste the full URL.</p></div>
+                <div class="form-group"><label>Options (Text or Image URL)</label><div class="option-group"><span>1.</span><input type="text" class="option-text" placeholder="Option 1" required></div><div class="option-group"><span>2.</span><input type="text" class="option-text" placeholder="Option 2" required></div><div class="option-group"><span>3.</span><input type="text" class="option-text" placeholder="Option 3" required></div><div class="option-group"><span>4.</span><input type="text" class="option-text" placeholder="Option 4" required></div></div>
+                <div class="form-group"><label for="q-answer-${questionCount}">Correct Answer</label><select id="q-answer-${questionCount}" class="correct-answer" required><option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option></select></div>
+                <div class="form-group"><label for="q-solution-${questionCount}">Detailed Solution</label><textarea id="q-solution-${questionCount}" class="solution-text" rows="3" placeholder="Explain the correct answer."></textarea></div>`;
+            questionsContainer.appendChild(questionBlock);
+        }
+        document.getElementById('addQuestionBtn').addEventListener('click', addQuestionField);
+        addQuestionField();
+        document.getElementById('createTestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const testName = document.getElementById('testName').value;
+            const className = document.getElementById('className').value;
+            if (!testName || !className || questionCount === 0) { alert('Please fill in Test Name, Class, and add at least one question.'); return; }
+            const questions = [];
+            for (const block of document.querySelectorAll('.question-block')) {
+                const qText = block.querySelector('.question-text').value;
+                const isImageUrl = (url) => url.startsWith('http') && (url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.gif'));
+                questions.push({
+                    questionText: qText, isQuestionImage: isImageUrl(qText),
+                    options: Array.from(block.querySelectorAll('.option-text')).map(opt => ({ optionText: opt.value, isOptionImage: isImageUrl(opt.value) })),
+                    correctAnswerIndex: parseInt(block.querySelector('.correct-answer').value),
+                    solution: block.querySelector('.solution-text').value
+                });
+            }
+            try {
+                await db.collection('tests').add({ testName, className, questions, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                alert(`Test "${testName}" saved successfully!`);
+                e.target.reset();
+                document.getElementById('questionsContainer').innerHTML = '';
+                questionCount = 0;
+                addQuestionField();
+            } catch (error) { console.error("Error adding document: ", error); alert('Error saving test.'); }
+        });
+    </script>
+</body>
+</html>
