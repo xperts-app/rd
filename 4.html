@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select a Test</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        h1 { text-align: center; color: #2c3e50; }
+        #test-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 30px; }
+        .test-card { background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; }
+        .test-card:hover { transform: translateY(-5px); }
+        .test-card h2 { font-size: 1.4rem; color: #34495e; margin-top: 0; }
+        .test-info { margin: 15px 0; color: #7f8c8d; font-size: 0.95rem; }
+        .test-info span { display: block; margin-bottom: 5px; }
+        .start-btn { padding: 12px 20px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; text-align: center; font-size: 1rem; font-weight: 600; width: 100%; margin-top: auto; }
+        .start-btn:hover { background-color: #2980b9; }
+        #loader { text-align: center; font-size: 1.5rem; color: #7f8c8d; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 400px; border-radius: 8px; text-align: center; }
+        .modal-content h2 { margin-top: 0; }
+        .modal-content input { width: 100%; padding: 10px; margin: 15px 0; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="page-title">Available Tests</h1>
+        <div id="test-list">
+            <div id="loader">Loading tests...</div>
+        </div>
+    </div>
+
+    <!-- Name Input Modal -->
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h2>Enter Your Name</h2>
+            <p>Your name will be shown on the leaderboard.</p>
+            <form id="nameForm">
+                <input type="text" id="studentName" placeholder="Your Full Name" required>
+                <button type="submit" class="start-btn">Proceed to Test</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM",
+            authDomain: "tests-data-with-leaderboard.firebaseapp.com",
+            projectId: "tests-data-with-leaderboard",
+            storageBucket: "tests-data-with-leaderboard.firebasestorage.app",
+            messagingSenderId: "884648979462",
+            appId: "1:884648979462:web:446df6ccb02bf73397e787",
+            measurementId: "G-701ZP61XZT"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let selectedTestId = null;
+
+        window.onload = async () => {
+            const testListContainer = document.getElementById('test-list');
+            const loader = document.getElementById('loader');
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const className = urlParams.get('class');
+
+            if (!className) {
+                loader.textContent = 'Error: Class not specified in URL. Please use a link like .../2.html?class=10';
+                return;
+            }
+
+            document.getElementById('page-title').textContent = `Tests for Class ${className}`;
+
+            try {
+                const querySnapshot = await db.collection('tests').where('className', '==', className).get();
+                loader.style.display = 'none';
+
+                if (querySnapshot.empty) {
+                    testListContainer.innerHTML = '<p>No tests found for this class.</p>';
+                    return;
+                }
+
+                querySnapshot.forEach(doc => {
+                    const test = doc.data();
+                    const testCard = document.createElement('div');
+                    testCard.className = 'test-card';
+                    testCard.innerHTML = `
+                        <h2>${test.testName}</h2>
+                        <div class="test-info">
+                            <span>Questions: ${test.questions.length}</span>
+                            <span>Total Marks: ${test.questions.length}</span>
+                        </div>
+                        <button class="start-btn" data-testid="${doc.id}">Start Test</button>
+                    `;
+                    testListContainer.appendChild(testCard);
+                });
+            } catch (error) {
+                console.error("Error fetching tests: ", error);
+                loader.textContent = 'Failed to load tests. Please check console for errors.';
+            }
+        };
+
+        // Event delegation for start buttons
+        document.getElementById('test-list').addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('start-btn')) {
+                selectedTestId = e.target.getAttribute('data-testid');
+                document.getElementById('nameModal').style.display = 'flex';
+            }
+        });
+
+        document.getElementById('nameForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const studentName = document.getElementById('studentName').value.trim();
+            if (studentName && selectedTestId) {
+                // Store info for the next page
+                localStorage.setItem('studentName', studentName);
+                
+                // Redirect to the test page
+                window.location.href = `3.html?testid=${selectedTestId}`;
+            } else {
+                alert('Please enter your name.');
+            }
+        });
+
+    </script>
+</body>
+</html>
