@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test in Progress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --background: #f0f2f5; --card-bg: #ffffff; --text-primary: #1c1e21; --text-secondary: #606770; --accent: #0866ff; --danger: #e74c3c; --success: #2ecc71; --light-gray: #ecf0f1; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 16px; box-sizing: border-box; }
+        .quiz-container { background: var(--card-bg); width: 100%; max-width: 800px; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0e0e0; padding-bottom: 15px; margin-bottom: 25px; }
+        .quiz-header h2 { margin: 0; font-size: 1.3rem; color: var(--text-primary); }
+        #timer { font-size: 1.2rem; font-weight: 600; color: var(--danger); }
+        #question-area img, .option img { max-width: 100%; height: auto; border-radius: 5px; margin-top: 10px; }
+        #question-text { font-size: 1.2rem; font-weight: 500; margin-bottom: 25px; line-height: 1.5; }
+        .options-container { display: flex; flex-direction: column; gap: 15px; }
+        .option { padding: 15px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .option:hover { border-color: var(--accent); }
+        .option.selected { border-color: var(--accent); background-color: var(--light-gray); }
+        .navigation-btns { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+        #prev-btn { background-color: var(--text-secondary); color: white; }
+        #next-btn { background-color: var(--success); color: white; }
+        #submit-btn { background-color: var(--danger); color: white; }
+        #loader { text-align: center; font-size: 1.5rem; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div id="loader">Loading your test...</div>
+    <div class="quiz-container" style="display: none;">
+        <div class="quiz-header">
+            <h2 id="test-title">Test Name</h2>
+            <div id="timer">Time Left: 10:00</div>
+        </div>
+        <div id="question-area">
+            <p id="question-text">Question will appear here.</p>
+        </div>
+        <div class="options-container" id="options-container"></div>
+        <div class="navigation-btns">
+            <button id="prev-btn" class="btn">Previous</button>
+            <button id="next-btn" class="btn">Next</button>
+            <button id="submit-btn" class="btn">Submit Test</button>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM", authDomain: "tests-data-with-leaderboard.firebaseapp.com", projectId: "tests-data-with-leaderboard", storageBucket: "tests-data-with-leaderboard.firebasestorage.app", messagingSenderId: "884648979462", appId: "1:884648979462:web:446df6ccb02bf73397e787", measurementId: "G-701ZP61XZT" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentQuestionIndex = 0, testData = null, userAnswers = [], timerInterval;
+        const loader = document.getElementById('loader'), quizContainer = document.querySelector('.quiz-container'), testTitleEl = document.getElementById('test-title'), questionTextEl = document.getElementById('question-text'), optionsContainerEl = document.getElementById('options-container'), prevBtn = document.getElementById('prev-btn'), nextBtn = document.getElementById('next-btn'), submitBtn = document.getElementById('submit-btn'), timerEl = document.getElementById('timer');
+
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const testId = urlParams.get('testid');
+            if (!testId || !localStorage.getItem('studentName')) {
+                loader.textContent = 'Error: Test ID or Student Name not found. Please start again.';
+                return;
+            }
+            try {
+                const doc = await db.collection('tests').doc(testId).get();
+                if (!doc.exists) throw new Error("Test not found");
+                testData = { ...doc.data(), id: doc.id };
+                userAnswers = new Array(testData.questions.length).fill(null);
+                loader.style.display = 'none';
+                quizContainer.style.display = 'block';
+                startTest();
+            } catch (error) { console.error(error); loader.textContent = 'Failed to load the test.'; }
+        };
+        
+        function startTest() {
+            testTitleEl.textContent = testData.testName;
+            renderQuestion(currentQuestionIndex);
+            updateNavButtons();
+            startTimer(testData.questions.length * 60); // 1 min per question
+        }
+        function renderQuestion(index) {
+            const q = testData.questions[index];
+            questionTextEl.innerHTML = q.isQuestionImage ? `<img src="${q.questionText}" alt="Question">` : `Q${index + 1}: ${q.questionText}`;
+            optionsContainerEl.innerHTML = '';
+            q.options.forEach((option, i) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'option';
+                optionEl.dataset.index = i;
+                optionEl.innerHTML = option.isOptionImage ? `<img src="${option.optionText}" alt="Option ${i+1}">` : option.optionText;
+                if (userAnswers[index] === i) optionEl.classList.add('selected');
+                optionsContainerEl.appendChild(optionEl);
+            });
+        }
+        optionsContainerEl.addEventListener('click', (e) => {
+            const selectedOption = e.target.closest('.option');
+            if (selectedOption) {
+                document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                selectedOption.classList.add('selected');
+                userAnswers[currentQuestionIndex] = parseInt(selectedOption.dataset.index);
+            }
+        });
+        function updateNavButtons() {
+            prevBtn.style.visibility = (currentQuestionIndex === 0) ? 'hidden' : 'visible';
+            nextBtn.style.visibility = (currentQuestionIndex === testData.questions.length - 1) ? 'hidden' : 'visible';
+        }
+        nextBtn.onclick = () => { if (currentQuestionIndex < testData.questions.length - 1) { currentQuestionIndex++; renderQuestion(currentQuestionIndex); updateNavButtons(); } };
+        prevBtn.onclick = () => { if (currentQuestionIndex > 0) { currentQuestionIndex--; renderQuestion(currentQuestionIndex); updateNavButtons(); } };
+        submitBtn.onclick = () => { if (confirm('Are you sure you want to submit?')) submitTest(); };
+        function startTimer(duration) {
+            let time = duration;
+            timerInterval = setInterval(() => {
+                let minutes = Math.floor(time / 60);
+                let seconds = time % 60;
+                timerEl.textContent = `Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                if (--time < 0) {
+                    clearInterval(timerInterval);
+                    alert('Time is up!');
+                    submitTest();
+                }
+            }, 1000);
+        }
+        function submitTest() {
+            clearInterval(timerInterval);
+            const studentName = localStorage.getItem('studentName');
+            const resultPayload = { testData, userAnswers, isNew: true };
+            localStorage.setItem(`result_${studentName}_${testData.id}`, JSON.stringify(resultPayload));
+            window.location.href = `4.html?testid=${testData.id}`;
+        }
+    </script>
+</body>
+</html>
