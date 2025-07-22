@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test in Progress</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .quiz-container { background: white; width: 90%; max-width: 800px; padding: 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .quiz-header h2 { margin: 0; font-size: 1.3rem; color: #2c3e50; }
+        #timer { font-size: 1.2rem; font-weight: 600; color: #e74c3c; }
+        #question-area img, .option img { max-width: 100%; height: auto; border-radius: 5px; margin-top: 10px; }
+        #question-text { font-size: 1.2rem; font-weight: 500; margin-bottom: 20px; }
+        .options-container { display: flex; flex-direction: column; gap: 15px; }
+        .option { padding: 15px; border: 2px solid #ddd; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+        .option:hover { border-color: #3498db; }
+        .option.selected { border-color: #3498db; background-color: #ecf0f1; }
+        .navigation-btns { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+        #prev-btn { background-color: #95a5a6; color: white; }
+        #next-btn { background-color: #2ecc71; color: white; }
+        #submit-btn { background-color: #e74c3c; color: white; }
+        #loader { text-align: center; font-size: 1.5rem; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">Loading your test...</div>
+
+    <div class="quiz-container" style="display: none;">
+        <div class="quiz-header">
+            <h2 id="test-title">Test Name</h2>
+            <div id="timer">Time Left: 10:00</div>
+        </div>
+        <div id="question-area">
+            <p id="question-text">Question will appear here.</p>
+        </div>
+        <div class="options-container" id="options-container">
+            <!-- Options will be dynamically generated -->
+        </div>
+        <div class="navigation-btns">
+            <button id="prev-btn" class="btn">Previous</button>
+            <button id="next-btn" class="btn">Next</button>
+            <button id="submit-btn" class="btn">Submit Test</button>
+        </div>
+    </div>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM",
+            authDomain: "tests-data-with-leaderboard.firebaseapp.com",
+            projectId: "tests-data-with-leaderboard",
+            storageBucket: "tests-data-with-leaderboard.firebasestorage.app",
+            messagingSenderId: "884648979462",
+            appId: "1:884648979462:web:446df6ccb02bf73397e787",
+            measurementId: "G-701ZP61XZT"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Global state
+        let currentQuestionIndex = 0;
+        let testData = null;
+        let userAnswers = [];
+        let timerInterval;
+
+        // UI Elements
+        const loader = document.getElementById('loader');
+        const quizContainer = document.querySelector('.quiz-container');
+        const testTitleEl = document.getElementById('test-title');
+        const questionTextEl = document.getElementById('question-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const timerEl = document.getElementById('timer');
+
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const testId = urlParams.get('testid');
+            const studentName = localStorage.getItem('studentName');
+
+            if (!testId || !studentName) {
+                loader.textContent = 'Error: Test ID or Student Name not found. Please start again.';
+                return;
+            }
+
+            try {
+                const doc = await db.collection('tests').doc(testId).get();
+                if (!doc.exists) {
+                    throw new Error("Test not found");
+                }
+                
+                testData = doc.data();
+                testData.id = doc.id;
+                userAnswers = new Array(testData.questions.length).fill(null);
+
+                loader.style.display = 'none';
+                quizContainer.style.display = 'block';
+
+                startTest();
+            } catch (error) {
+                console.error("Error loading test:", error);
+                loader.textContent = 'Failed to load the test. Please try again.';
+            }
+        };
+
+        function startTest() {
+            testTitleEl.textContent = testData.testName;
+            renderQuestion(currentQuestionIndex);
+            updateNavButtons();
+            startTimer(testData.questions.length * 60); // 1 minute per question
+        }
+        
+        function renderQuestion(index) {
+            const q = testData.questions[index];
+            
+            // Render question
+            if(q.isQuestionImage) {
+                questionTextEl.innerHTML = `<img src="${q.questionText}" alt="Question Image">`;
+            } else {
+                questionTextEl.textContent = `Q${index + 1}: ${q.questionText}`;
+            }
+
+            // Render options
+            optionsContainerEl.innerHTML = '';
+            q.options.forEach((option, i) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'option';
+                optionEl.dataset.index = i;
+
+                if(option.isOptionImage) {
+                    optionEl.innerHTML = `<img src="${option.optionText}" alt="Option ${i+1}">`;
+                } else {
+                    optionEl.textContent = option.optionText;
+                }
+                
+                if (userAnswers[index] === i) {
+                    optionEl.classList.add('selected');
+                }
+                
+                optionsContainerEl.appendChild(optionEl);
+            });
+        }
+        
+        optionsContainerEl.addEventListener('click', (e) => {
+            const selectedOption = e.target.closest('.option');
+            if (selectedOption) {
+                // Remove 'selected' from all options
+                document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                // Add 'selected' to the clicked one
+                selectedOption.classList.add('selected');
+                // Store answer
+                userAnswers[currentQuestionIndex] = parseInt(selectedOption.dataset.index);
+            }
+        });
+
+        function updateNavButtons() {
+            prevBtn.style.visibility = (currentQuestionIndex === 0) ? 'hidden' : 'visible';
+            nextBtn.style.visibility = (currentQuestionIndex === testData.questions.length - 1) ? 'hidden' : 'visible';
+        }
+        
+        nextBtn.addEventListener('click', () => {
+            if (currentQuestionIndex < testData.questions.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion(currentQuestionIndex);
+                updateNavButtons();
+            }
+        });
+        
+        prevBtn.addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion(currentQuestionIndex);
+                updateNavButtons();
+            }
+        });
+        
+        submitBtn.addEventListener('click', () => {
+             if (confirm('Are you sure you want to submit the test?')) {
+                submitTest();
+            }
+        });
+
+        function startTimer(duration) {
+            let time = duration;
+            timerInterval = setInterval(() => {
+                let minutes = Math.floor(time / 60);
+                let seconds = time % 60;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+                timerEl.textContent = `Time Left: ${minutes}:${seconds}`;
+                
+                if (--time < 0) {
+                    clearInterval(timerInterval);
+                    alert('Time is up! Submitting your test automatically.');
+                    submitTest();
+                }
+            }, 1000);
+        }
+
+        function submitTest() {
+            clearInterval(timerInterval);
+            // Store results in localStorage to pass to the result page
+            localStorage.setItem('testResults', JSON.stringify({
+                testData: testData,
+                userAnswers: userAnswers
+            }));
+            
+            window.location.href = `4.html?testid=${testData.id}`;
+        }
+    </script>
+</body>
+</html>
