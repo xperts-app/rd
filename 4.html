@@ -3,43 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select a Test</title>
+    <title>Subject Tests</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; }
-        h1 { text-align: center; color: #2c3e50; }
-        #test-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 30px; }
-        .test-card { background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; }
-        .test-card:hover { transform: translateY(-5px); }
-        .test-card h2 { font-size: 1.4rem; color: #34495e; margin-top: 0; }
-        .test-info { margin: 15px 0; color: #7f8c8d; font-size: 0.95rem; }
-        .test-info span { display: block; margin-bottom: 5px; }
-        .start-btn { padding: 12px 20px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; text-align: center; font-size: 1rem; font-weight: 600; width: 100%; margin-top: auto; }
-        .start-btn:hover { background-color: #2980b9; }
-        #loader { text-align: center; font-size: 1.5rem; color: #7f8c8d; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background-color: #fefefe; margin: auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 400px; border-radius: 8px; text-align: center; }
+        :root {
+            --background: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-primary: #1c1e21;
+            --text-secondary: #606770;
+            --accent: #0866ff;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background);
+            margin: 0;
+            padding: 0;
+            color: var(--text-primary);
+        }
+        .app-container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .back-button {
+            background: var(--card-bg);
+            border: 1px solid #e0e0e0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .header-title p {
+            margin: 4px 0 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .test-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .test-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .loader { text-align: center; padding: 40px; font-size: 1.2rem; color: var(--text-secondary); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
+        .modal-content { background-color: var(--card-bg); margin: auto; padding: 30px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .modal-content h2 { margin-top: 0; }
-        .modal-content input { width: 100%; padding: 10px; margin: 15px 0; box-sizing: border-box; }
+        .modal-content input { width: 100%; padding: 12px; margin: 15px 0; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; }
+        .modal-btn { padding: 12px 20px; background-color: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; text-align: center; font-size: 1rem; font-weight: 600; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1 id="page-title">Available Tests</h1>
-        <div id="test-list">
-            <div id="loader">Loading tests...</div>
-        </div>
+    <div class="app-container">
+        <header>
+            <a href="#" onclick="history.back(); return false;" class="back-button">←</a>
+            <div class="header-title">
+                <h1 id="page-title">Subject Test</h1>
+                <p id="completion-status">Loading...</p>
+            </div>
+        </header>
+
+        <main>
+            <div id="test-list-container">
+                <div class="loader" id="loader">Loading tests...</div>
+            </div>
+        </main>
     </div>
 
     <!-- Name Input Modal -->
     <div id="nameModal" class="modal">
         <div class="modal-content">
             <h2>Enter Your Name</h2>
-            <p>Your name will be shown on the leaderboard.</p>
+            <p>Your name is used to track your progress and show on the leaderboard.</p>
             <form id="nameForm">
-                <input type="text" id="studentName" placeholder="Your Full Name" required>
-                <button type="submit" class="start-btn">Proceed to Test</button>
+                <input type="text" id="studentNameInput" placeholder="Your Full Name" required>
+                <button type="submit" class="modal-btn">Save & Continue</button>
             </form>
         </div>
     </div>
@@ -62,73 +132,106 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let selectedTestId = null;
+        const nameModal = document.getElementById('nameModal');
+        const nameForm = document.getElementById('nameForm');
+        const studentNameInput = document.getElementById('studentNameInput');
 
-        window.onload = async () => {
-            const testListContainer = document.getElementById('test-list');
+        // Main function to initialize the page
+        async function initializePage() {
+            let studentName = localStorage.getItem('studentName');
+
+            if (!studentName) {
+                nameModal.style.display = 'flex';
+                nameForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = studentNameInput.value.trim();
+                    if (name) {
+                        localStorage.setItem('studentName', name);
+                        nameModal.style.display = 'none';
+                        loadTests();
+                    }
+                });
+            } else {
+                loadTests();
+            }
+        }
+
+        // Function to load tests from Firebase
+        async function loadTests() {
+            const testListContainer = document.getElementById('test-list-container');
             const loader = document.getElementById('loader');
+            const statusEl = document.getElementById('completion-status');
 
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
 
             if (!className) {
-                loader.textContent = 'Error: Class not specified in URL. Please use a link like .../2.html?class=10';
+                loader.textContent = 'Error: Class not specified. Use a URL like .../2.html?class=10';
+                statusEl.textContent = 'Invalid URL';
                 return;
             }
 
             document.getElementById('page-title').textContent = `Tests for Class ${className}`;
 
             try {
+                const studentName = localStorage.getItem('studentName');
+                // Key for localStorage to store completed tests for the current user
+                const completedTestsKey = `completedTests_${studentName}_${className}`;
+                const completedTests = JSON.parse(localStorage.getItem(completedTestsKey)) || {};
+
                 const querySnapshot = await db.collection('tests').where('className', '==', className).get();
                 loader.style.display = 'none';
 
                 if (querySnapshot.empty) {
                     testListContainer.innerHTML = '<p>No tests found for this class.</p>';
+                    statusEl.textContent = '0/0 Tests completed';
                     return;
                 }
+
+                statusEl.textContent = `${Object.keys(completedTests).length}/${querySnapshot.size} Tests completed`;
 
                 querySnapshot.forEach(doc => {
                     const test = doc.data();
                     const testCard = document.createElement('div');
                     testCard.className = 'test-card';
-                    testCard.innerHTML = `
-                        <h2>${test.testName}</h2>
-                        <div class="test-info">
-                            <span>Questions: ${test.questions.length}</span>
-                            <span>Total Marks: ${test.questions.length}</span>
-                        </div>
-                        <button class="start-btn" data-testid="${doc.id}">Start Test</button>
-                    `;
+                    testCard.textContent = test.testName;
+                    testCard.dataset.testid = doc.id;
+                    testCard.dataset.classname = test.className;
+
+                    // Check if test is completed
+                    if (completedTests[doc.id]) {
+                        testCard.style.opacity = '0.7';
+                        testCard.title = "You have completed this test. Click to see your result.";
+                    }
                     testListContainer.appendChild(testCard);
                 });
+
             } catch (error) {
                 console.error("Error fetching tests: ", error);
-                loader.textContent = 'Failed to load tests. Please check console for errors.';
+                loader.textContent = 'Failed to load tests. Check console for errors.';
             }
-        };
+        }
 
-        // Event delegation for start buttons
-        document.getElementById('test-list').addEventListener('click', function(e) {
-            if (e.target && e.target.classList.contains('start-btn')) {
-                selectedTestId = e.target.getAttribute('data-testid');
-                document.getElementById('nameModal').style.display = 'flex';
-            }
-        });
+        // Event delegation for test cards
+        document.getElementById('test-list-container').addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('test-card')) {
+                const testId = e.target.dataset.testid;
+                const className = e.target.dataset.classname;
+                const studentName = localStorage.getItem('studentName');
+                const completedTestsKey = `completedTests_${studentName}_${className}`;
+                const completedTests = JSON.parse(localStorage.getItem(completedTestsKey)) || {};
 
-        document.getElementById('nameForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const studentName = document.getElementById('studentName').value.trim();
-            if (studentName && selectedTestId) {
-                // Store info for the next page
-                localStorage.setItem('studentName', studentName);
-                
-                // Redirect to the test page
-                window.location.href = `3.html?testid=${selectedTestId}`;
-            } else {
-                alert('Please enter your name.');
+                if (completedTests[testId]) {
+                    // If test is completed, go to result page
+                    window.location.href = `4.html?testid=${testId}`;
+                } else {
+                    // If not completed, start the test
+                    window.location.href = `3.html?testid=${testId}`;
+                }
             }
         });
 
+        window.onload = initializePage;
     </script>
 </body>
 </html>
