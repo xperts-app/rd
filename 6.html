@@ -14,7 +14,6 @@
         .action-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 25px; text-decoration: none; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.2s; }
         #reattempt-btn { background-color: #3498db; color: white; }
         #leaderboard-btn { background-color: #f1c40f; color: white; }
-        
         .review-container h2 { text-align: center; color: #34495e; margin: 40px 0 20px 0; }
         .review-container .question-block { background: white; margin-bottom: 20px; padding: 20px; border-radius: 8px; border-left: 5px solid #bdc3c7; }
         .review-container .question-block.correct { border-left-color: #2ecc71; }
@@ -25,7 +24,6 @@
         .option-item.correct-answer { background-color: #dff9e6; border-color: #2ecc71; font-weight: bold; }
         .option-item.wrong-answer { background-color: #fbecec; border-color: #e74c3c; text-decoration: line-through; }
         .solution { margin-top: 15px; padding: 10px; background: #ecf0f1; border-radius: 4px; color: #34495e; }
-        .solution strong { color: #2c3e50; }
     </style>
 </head>
 <body>
@@ -33,18 +31,14 @@
     <div class="container">
         <div id="result-summary" class="result-summary">
             <h1>Test Result</h1>
-            <p id="score-text">Calculating your score...</p>
+            <p id="score-text">Calculating score...</p>
             <div class="action-buttons">
                 <button id="reattempt-btn" class="action-btn">Re-attempt</button>
-                <a id="leaderboard-btn" href="#" class="action-btn">
-                    <span>Leaderboard</span>
-                </a>
+                <a id="leaderboard-btn" href="#" class="action-btn">Leaderboard</a>
             </div>
         </div>
-        
         <div id="review-container" class="review-container">
             <h2>Review Your Answers</h2>
-            <!-- Review content will be generated here -->
         </div>
     </div>
 
@@ -62,7 +56,6 @@
             appId: "1:884648979462:web:446df6ccb02bf73397e787",
             measurementId: "G-701ZP61XZT"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -72,76 +65,59 @@
             const testId = urlParams.get('testid');
 
             if (!studentName || !testId) {
-                document.body.innerHTML = '<h1>Error: Missing student or test information. Please start from the test list.</h1>';
+                document.body.innerHTML = '<h1>Error: Missing information. Please start from the test list.</h1>';
                 return;
             }
             
-            // The key to find the result in localStorage
             const resultKey = `result_${studentName}_${testId}`;
             const resultPayload = JSON.parse(localStorage.getItem(resultKey));
 
             if (!resultPayload) {
-                document.body.innerHTML = `<h1>Error: No result found for this test. <a href="2.html?class=YourClass">Go back to test list.</a></h1><p>Please replace 'YourClass' with the correct class name in the link.</p>`;
+                document.body.innerHTML = `<h1>Error: No result found for this test. Maybe you need to attempt it first?</h1>`;
                 return;
             }
 
             const { testData, userAnswers, isNew } = resultPayload;
             let score = 0;
-
-            // --- Render the review section ---
             const reviewContainer = document.getElementById('review-container');
+
             testData.questions.forEach((q, index) => {
                 const isCorrect = (q.correctAnswerIndex === userAnswers[index]);
                 if (isCorrect) score++;
-                // (The rest of the rendering logic is the same as before, so it's omitted for brevity)
                 const questionBlock = document.createElement('div');
                 questionBlock.className = `question-block ${isCorrect ? 'correct' : 'incorrect'}`;
-                let questionHTML = q.isQuestionImage ? `<img src="${q.questionText}" alt="Question">` : q.questionText;
-                let optionsHTML = q.options.map((opt, i) => {
+                let qHtml = q.isQuestionImage ? `<img src="${q.questionText}" alt="Question">` : q.questionText;
+                let optsHtml = q.options.map((opt, i) => {
                     let classes = 'option-item';
                     if (i === q.correctAnswerIndex) classes += ' correct-answer';
                     if (i === userAnswers[index] && !isCorrect) classes += ' wrong-answer';
-                    let optionContent = opt.isOptionImage ? `<img src="${opt.optionText}" alt="Option">` : opt.optionText;
-                    return `<div class="${classes}">${optionContent}</div>`;
+                    let optContent = opt.isOptionImage ? `<img src="${opt.optionText}" alt="Option">` : opt.optionText;
+                    return `<div class="${classes}">${optContent}</div>`;
                 }).join('');
-                questionBlock.innerHTML = `<div class="question-text">Q${index + 1}: ${questionHTML}</div><div class="options">${optionsHTML}</div><div class="solution"><strong>Solution:</strong> ${q.solution || 'No solution provided.'}</div>`;
+                questionBlock.innerHTML = `<div class="question-text">Q${index + 1}: ${qHtml}</div><div class="options">${optsHtml}</div><div class="solution"><strong>Solution:</strong> ${q.solution || 'No solution provided.'}</div>`;
                 reviewContainer.appendChild(questionBlock);
             });
 
-            // Display summary
             document.getElementById('score-text').textContent = `You scored ${score} out of ${testData.questions.length}.`;
-
-            // --- Handle Buttons and Data Saving ---
             document.getElementById('leaderboard-btn').href = `5.html?testid=${testId}&class=${testData.className}`;
             
-            const reattemptBtn = document.getElementById('reattempt-btn');
-            reattemptBtn.addEventListener('click', () => {
-                if (confirm('Re-attempting will clear this result. Are you sure?')) {
-                    // Clear result from local storage
+            document.getElementById('reattempt-btn').onclick = () => {
+                if (confirm('Re-attempting will clear this result and your previous leaderboard entry. Are you sure?')) {
                     localStorage.removeItem(resultKey);
-                    
-                    // Also clear from the general "completed" list
-                    const completedKey = `completedTests_${studentName}_${testData.className}`;
+                    const completedKey = `completedTests_${studentName}`;
                     let completedTests = JSON.parse(localStorage.getItem(completedKey)) || {};
                     delete completedTests[testId];
                     localStorage.setItem(completedKey, JSON.stringify(completedTests));
-
-                    // Go to test page
                     window.location.href = `3.html?testid=${testId}`;
                 }
-            });
-
-            // If this is a new result, save to leaderboard and update local state
+            };
+            
             if (isNew) {
                 await saveToLeaderboard(testId, studentName, score, testData.questions.length);
-                
-                // Mark test as completed for the test list page
-                const completedKey = `completedTests_${studentName}_${testData.className}`;
+                const completedKey = `completedTests_${studentName}`;
                 let completedTests = JSON.parse(localStorage.getItem(completedKey)) || {};
                 completedTests[testId] = true;
                 localStorage.setItem(completedKey, JSON.stringify(completedTests));
-
-                // Update the payload in localStorage to mark it as not new anymore
                 resultPayload.isNew = false;
                 localStorage.setItem(resultKey, JSON.stringify(resultPayload));
             }
