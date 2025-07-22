@@ -10,6 +10,12 @@
         .result-summary { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; margin-bottom: 30px; }
         .result-summary h1 { color: #2c3e50; margin-top: 0; }
         .result-summary p { font-size: 1.5rem; font-weight: 500; color: #3498db; }
+        .action-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+        .action-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 25px; text-decoration: none; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.2s; }
+        #reattempt-btn { background-color: #3498db; color: white; }
+        #leaderboard-btn { background-color: #f1c40f; color: white; }
+        
+        .review-container h2 { text-align: center; color: #34495e; margin: 40px 0 20px 0; }
         .review-container .question-block { background: white; margin-bottom: 20px; padding: 20px; border-radius: 8px; border-left: 5px solid #bdc3c7; }
         .review-container .question-block.correct { border-left-color: #2ecc71; }
         .review-container .question-block.incorrect { border-left-color: #e74c3c; }
@@ -20,20 +26,24 @@
         .option-item.wrong-answer { background-color: #fbecec; border-color: #e74c3c; text-decoration: line-through; }
         .solution { margin-top: 15px; padding: 10px; background: #ecf0f1; border-radius: 4px; color: #34495e; }
         .solution strong { color: #2c3e50; }
-        .leaderboard-link { display: inline-block; margin-top: 20px; padding: 12px 25px; background-color: #f39c12; color: white; text-decoration: none; font-weight: 600; border-radius: 5px; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div id="result-summary" class="result-summary">
-            <h1>Test Completed!</h1>
+            <h1>Test Result</h1>
             <p id="score-text">Calculating your score...</p>
-            <a id="leaderboard-link" href="#" class="leaderboard-link">View Leaderboard</a>
+            <div class="action-buttons">
+                <button id="reattempt-btn" class="action-btn">Re-attempt</button>
+                <a id="leaderboard-btn" href="#" class="action-btn">
+                    <span>Leaderboard</span>
+                </a>
+            </div>
         </div>
         
-        <h2>Review Your Answers</h2>
         <div id="review-container" class="review-container">
+            <h2>Review Your Answers</h2>
             <!-- Review content will be generated here -->
         </div>
     </div>
@@ -56,59 +66,85 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        window.onload = () => {
-            const results = JSON.parse(localStorage.getItem('testResults'));
+        window.onload = async () => {
             const studentName = localStorage.getItem('studentName');
             const urlParams = new URLSearchParams(window.location.search);
             const testId = urlParams.get('testid');
 
-            if (!results || !studentName || !testId) {
-                document.body.innerHTML = '<h1>Error: Result data not found. Please complete a test first.</h1>';
+            if (!studentName || !testId) {
+                document.body.innerHTML = '<h1>Error: Missing student or test information. Please start from the test list.</h1>';
+                return;
+            }
+            
+            // The key to find the result in localStorage
+            const resultKey = `result_${studentName}_${testId}`;
+            const resultPayload = JSON.parse(localStorage.getItem(resultKey));
+
+            if (!resultPayload) {
+                document.body.innerHTML = `<h1>Error: No result found for this test. <a href="2.html?class=YourClass">Go back to test list.</a></h1><p>Please replace 'YourClass' with the correct class name in the link.</p>`;
                 return;
             }
 
-            const { testData, userAnswers } = results;
-            const reviewContainer = document.getElementById('review-container');
+            const { testData, userAnswers, isNew } = resultPayload;
             let score = 0;
 
-            // Calculate score and render review
+            // --- Render the review section ---
+            const reviewContainer = document.getElementById('review-container');
             testData.questions.forEach((q, index) => {
                 const isCorrect = (q.correctAnswerIndex === userAnswers[index]);
                 if (isCorrect) score++;
-
+                // (The rest of the rendering logic is the same as before, so it's omitted for brevity)
                 const questionBlock = document.createElement('div');
                 questionBlock.className = `question-block ${isCorrect ? 'correct' : 'incorrect'}`;
-                
-                let questionHTML = q.isQuestionImage ? `<img src="${q.questionText}">` : q.questionText;
+                let questionHTML = q.isQuestionImage ? `<img src="${q.questionText}" alt="Question">` : q.questionText;
                 let optionsHTML = q.options.map((opt, i) => {
                     let classes = 'option-item';
                     if (i === q.correctAnswerIndex) classes += ' correct-answer';
                     if (i === userAnswers[index] && !isCorrect) classes += ' wrong-answer';
-                    
-                    let optionContent = opt.isOptionImage ? `<img src="${opt.optionText}">` : opt.optionText;
+                    let optionContent = opt.isOptionImage ? `<img src="${opt.optionText}" alt="Option">` : opt.optionText;
                     return `<div class="${classes}">${optionContent}</div>`;
                 }).join('');
-
-                questionBlock.innerHTML = `
-                    <div class="question-text">Q${index + 1}: ${questionHTML}</div>
-                    <div class="options">${optionsHTML}</div>
-                    <div class="solution"><strong>Solution:</strong> ${q.solution || 'No solution provided.'}</div>
-                `;
+                questionBlock.innerHTML = `<div class="question-text">Q${index + 1}: ${questionHTML}</div><div class="options">${optionsHTML}</div><div class="solution"><strong>Solution:</strong> ${q.solution || 'No solution provided.'}</div>`;
                 reviewContainer.appendChild(questionBlock);
             });
 
             // Display summary
-            document.getElementById('score-text').textContent = `Hi ${studentName}, you scored ${score} out of ${testData.questions.length}.`;
+            document.getElementById('score-text').textContent = `You scored ${score} out of ${testData.questions.length}.`;
+
+            // --- Handle Buttons and Data Saving ---
+            document.getElementById('leaderboard-btn').href = `5.html?testid=${testId}&class=${testData.className}`;
             
-            // Set leaderboard link
-            document.getElementById('leaderboard-link').href = `5.html?testid=${testId}`;
+            const reattemptBtn = document.getElementById('reattempt-btn');
+            reattemptBtn.addEventListener('click', () => {
+                if (confirm('Re-attempting will clear this result. Are you sure?')) {
+                    // Clear result from local storage
+                    localStorage.removeItem(resultKey);
+                    
+                    // Also clear from the general "completed" list
+                    const completedKey = `completedTests_${studentName}_${testData.className}`;
+                    let completedTests = JSON.parse(localStorage.getItem(completedKey)) || {};
+                    delete completedTests[testId];
+                    localStorage.setItem(completedKey, JSON.stringify(completedTests));
 
-            // Save to leaderboard
-            saveToLeaderboard(testId, studentName, score, testData.questions.length);
+                    // Go to test page
+                    window.location.href = `3.html?testid=${testId}`;
+                }
+            });
 
-            // Clean up localStorage
-            localStorage.removeItem('testResults');
-            // We can keep studentName for convenience if they take another test
+            // If this is a new result, save to leaderboard and update local state
+            if (isNew) {
+                await saveToLeaderboard(testId, studentName, score, testData.questions.length);
+                
+                // Mark test as completed for the test list page
+                const completedKey = `completedTests_${studentName}_${testData.className}`;
+                let completedTests = JSON.parse(localStorage.getItem(completedKey)) || {};
+                completedTests[testId] = true;
+                localStorage.setItem(completedKey, JSON.stringify(completedTests));
+
+                // Update the payload in localStorage to mark it as not new anymore
+                resultPayload.isNew = false;
+                localStorage.setItem(resultKey, JSON.stringify(resultPayload));
+            }
         };
 
         async function saveToLeaderboard(testId, studentName, score, totalQuestions) {
