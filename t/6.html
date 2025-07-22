@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Manage Tests</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --background: #f0f2f5; --card-bg: #ffffff; --text-primary: #1c1e21; --text-secondary: #606770; --accent: #0866ff; --success: #2ecc71; --danger: #e74c3c; --warning: #f1c40f; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background); margin: 0; padding: 20px; color: var(--text-primary); }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        h1, h2, h3 { color: var(--text-primary); }
+        h1 { text-align: center; margin-bottom: 40px; }
+        h2 { border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        /* Test List Styles */
+        #filterInput { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccd0d5; font-size: 1rem; margin-bottom: 20px; box-sizing: border-box; }
+        #testListContainer { max-height: 500px; overflow-y: auto; padding-right: 10px; }
+        .test-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-radius: 8px; transition: background-color 0.2s; }
+        .test-item:nth-child(odd) { background-color: #f7f8fa; }
+        .test-item:hover { background-color: #e9ebee; }
+        .test-info h3 { margin: 0; font-size: 1.1rem; }
+        .test-info p { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.9rem; }
+        .test-actions button { margin-left: 10px; }
+
+        /* Form Styles */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+        input[type="text"], select, textarea { width: 100%; padding: 12px; border: 1px solid #ccd0d5; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        .btn { display: inline-block; padding: 10px 18px; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-edit { background-color: var(--warning); }
+        .btn-delete { background-color: var(--danger); }
+        .btn-add { background-color: var(--success); }
+        .btn-submit { background-color: var(--accent); width: 100%; font-size: 1.2rem; padding: 15px; }
+        .btn-cancel { background-color: var(--text-secondary); }
+
+        .question-block { border: 1px solid #e0e0e0; padding: 20px; margin-top: 20px; border-radius: 8px; background-color: #f7f8fa; position: relative; }
+        .option-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .info { font-size: 0.9em; color: var(--text-secondary); margin-top: 5px; }
+        .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+
+        <!-- SECTION 1: MANAGE EXISTING TESTS -->
+        <div class="card">
+            <h2>Manage Existing Tests</h2>
+            <input type="text" id="filterInput" placeholder="Filter by class name (e.g., NEET, 10)...">
+            <div id="testListContainer">
+                <p>Loading tests...</p>
+            </div>
+        </div>
+
+        <!-- SECTION 2: CREATE / EDIT TEST FORM -->
+        <div class="card" id="testEditor">
+            <h2 id="editorTitle">Create New Test</h2>
+            <form id="testForm">
+                <div class="form-group">
+                    <label for="testName">Test Name</label>
+                    <input type="text" id="testName" placeholder="e.g., Botany Full Test 1" required>
+                </div>
+                <div class="form-group">
+                    <label for="className">Class</label>
+                    <input type="text" id="className" placeholder="e.g., 10, 12, NEET" required>
+                </div>
+                <div id="questionsContainer"></div>
+                <button type="button" class="btn btn-add" id="addQuestionBtn">Add Question</button>
+                <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e0e0e0;">
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-submit" id="submitBtn">Save New Test</button>
+                    <button type="button" class="btn btn-cancel" id="cancelBtn" style="display:none;">Cancel Edit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM", authDomain: "tests-data-with-leaderboard.firebaseapp.com", projectId: "tests-data-with-leaderboard", storageBucket: "tests-data-with-leaderboard.firebasestorage.app", messagingSenderId: "884648979462", appId: "1:884648979462:web:446df6ccb02bf73397e787", measurementId: "G-701ZP61XZT" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- GLOBAL STATE ---
+        let allTests = []; // Cache for all tests to avoid re-fetching for filter
+        let currentEditId = null; // To track if we are editing or creating
+        let questionCount = 0;
+
+        // --- DOM ELEMENTS ---
+        const testListContainer = document.getElementById('testListContainer');
+        const filterInput = document.getElementById('filterInput');
+        const editorTitle = document.getElementById('editorTitle');
+        const testForm = document.getElementById('testForm');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // --- LOAD AND DISPLAY TESTS ---
+        async function loadAllTests() {
+            try {
+                const snapshot = await db.collection('tests').orderBy('createdAt', 'desc').get();
+                allTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTests(allTests);
+            } catch (error) {
+                console.error("Error loading tests: ", error);
+                testListContainer.innerHTML = `<p style="color:red;">Failed to load tests. Check console.</p>`;
+            }
+        }
+
+        function renderTests(tests) {
+            testListContainer.innerHTML = '';
+            if (tests.length === 0) {
+                testListContainer.innerHTML = '<p>No tests found.</p>';
+                return;
+            }
+            tests.forEach(test => {
+                const testElement = document.createElement('div');
+                testElement.className = 'test-item';
+                testElement.innerHTML = `
+                    <div class="test-info">
+                        <h3>${test.testName}</h3>
+                        <p>Class: ${test.className} | Questions: ${test.questions.length}</p>
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-edit" data-id="${test.id}">Edit</button>
+                        <button class="btn btn-delete" data-id="${test.id}">Delete</button>
+                    </div>
+                `;
+                testListContainer.appendChild(testElement);
+            });
+        }
+
+        // --- FILTER LOGIC ---
+        filterInput.addEventListener('keyup', () => {
+            const filterValue = filterInput.value.toLowerCase();
+            const filteredTests = allTests.filter(test => 
+                test.className.toLowerCase().includes(filterValue) ||
+                test.testName.toLowerCase().includes(filterValue)
+            );
+            renderTests(filteredTests);
+        });
+
+        // --- DELETE & EDIT LOGIC (EVENT DELEGATION) ---
+        testListContainer.addEventListener('click', async (e) => {
+            const testId = e.target.dataset.id;
+            if (!testId) return;
+
+            // Handle Delete
+            if (e.target.classList.contains('btn-delete')) {
+                if (confirm('Are you sure you want to delete this test? This action cannot be undone.')) {
+                    try {
+                        await db.collection('tests').doc(testId).delete();
+                        alert('Test deleted successfully!');
+                        loadAllTests(); // Refresh the list
+                    } catch (error) {
+                        console.error("Error deleting test: ", error);
+                        alert('Failed to delete test.');
+                    }
+                }
+            }
+
+            // Handle Edit
+            if (e.target.classList.contains('btn-edit')) {
+                const testToEdit = allTests.find(t => t.id === testId);
+                if (testToEdit) {
+                    switchToEditMode(testToEdit);
+                }
+            }
+        });
+
+        // --- FORM LOGIC (CREATE/UPDATE) ---
+        function switchToEditMode(test) {
+            currentEditId = test.id;
+            editorTitle.textContent = 'Edit Test';
+            submitBtn.textContent = 'Update Test';
+            cancelBtn.style.display = 'inline-block';
+
+            // Populate main fields
+            document.getElementById('testName').value = test.testName;
+            document.getElementById('className').value = test.className;
+
+            // Populate questions
+            questionsContainer.innerHTML = '';
+            questionCount = 0;
+            test.questions.forEach(q => addQuestionField(q));
+            
+            // Scroll to the editor
+            document.getElementById('testEditor').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetFormToCreateMode() {
+            currentEditId = null;
+            testForm.reset();
+            editorTitle.textContent = 'Create New Test';
+            submitBtn.textContent = 'Save New Test';
+            cancelBtn.style.display = 'none';
+            questionsContainer.innerHTML = '';
+            questionCount = 0;
+            addQuestionField(); // Add one blank question
+        }
+
+        cancelBtn.addEventListener('click', resetFormToCreateMode);
+        
+        testForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const testData = {
+                testName: document.getElementById('testName').value,
+                className: document.getElementById('className').value,
+                questions: [],
+            };
+
+            const questionBlocks = document.querySelectorAll('.question-block');
+            for (const block of questionBlocks) {
+                const qText = block.querySelector('.question-text').value;
+                const isImageUrl = (url) => url.startsWith('http') && (url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.gif'));
+                testData.questions.push({
+                    questionText: qText,
+                    isQuestionImage: isImageUrl(qText),
+                    options: Array.from(block.querySelectorAll('.option-text')).map(opt => ({ optionText: opt.value, isOptionImage: isImageUrl(opt.value) })),
+                    correctAnswerIndex: parseInt(block.querySelector('.correct-answer').value),
+                    solution: block.querySelector('.solution-text').value
+                });
+            }
+            
+            try {
+                submitBtn.disabled = true;
+                if (currentEditId) {
+                    // --- UPDATE PATH ---
+                    await db.collection('tests').doc(currentEditId).update(testData);
+                    alert('Test updated successfully!');
+                } else {
+                    // --- CREATE PATH ---
+                    testData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('tests').add(testData);
+                    alert('Test created successfully!');
+                }
+                resetFormToCreateMode();
+                loadAllTests(); // Refresh the list
+            } catch (error) {
+                console.error("Database error: ", error);
+                alert('An error occurred. Check the console.');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // --- QUESTION FIELD MANAGEMENT ---
+        function addQuestionField(data = null) {
+            questionCount++;
+            const questionBlock = document.createElement('div');
+            questionBlock.className = 'question-block';
+            questionBlock.innerHTML = `
+                <h3>Question ${questionCount}</h3>
+                <div class="form-group"><label>Question Text or Image URL</label><input type="text" class="question-text" value="${data?.questionText || ''}" required></div>
+                <div class="form-group"><label>Options</label>
+                    <div class="option-group"><span>1.</span><input type="text" class="option-text" value="${data?.options[0]?.optionText || ''}" required></div>
+                    <div class="option-group"><span>2.</span><input type="text" class="option-text" value="${data?.options[1]?.optionText || ''}" required></div>
+                    <div class="option-group"><span>3.</span><input type="text" class="option-text" value="${data?.options[2]?.optionText || ''}" required></div>
+                    <div class="option-group"><span>4.</span><input type="text" class="option-text" value="${data?.options[3]?.optionText || ''}" required></div>
+                </div>
+                <div class="form-group"><label>Correct Answer</label><select class="correct-answer" required><option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option></select></div>
+                <div class="form-group"><label>Detailed Solution</label><textarea class="solution-text" rows="3">${data?.solution || ''}</textarea></div>`;
+            
+            if (data) {
+                questionBlock.querySelector('.correct-answer').value = data.correctAnswerIndex;
+            }
+            
+            questionsContainer.appendChild(questionBlock);
+        }
+
+        document.getElementById('addQuestionBtn').addEventListener('click', () => addQuestionField());
+
+        // --- INITIALIZE PAGE ---
+        window.onload = () => {
+            loadAllTests();
+            addQuestionField(); // Start with one blank question in the creator
+        };
+    </script>
+</body>
+</html>
