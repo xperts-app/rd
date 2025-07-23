@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Viewer (Firestore)</title>
+    <title>Chapter Content Viewer</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 900px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 30px; background-color: #007bff; color: white; padding: 20px; border-radius: 8px; }
-        .header h1, .header h2 { margin: 0; }
-        #contentContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
-        .chapter-card { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; }
-        .chapter-card h3 { color: #0056b3; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
-        .content-type-header { font-size: 1.1em; font-weight: bold; margin-top: 15px; margin-bottom: 10px; color: #333; }
+        .header h1, .header h2, .header h3 { margin: 0; }
+        .header h3 { font-weight: 400; margin-top: 5px; opacity: 0.9; }
+        #contentContainer { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px 30px; }
+        .content-type-header { font-size: 1.4em; font-weight: 600; margin-top: 15px; margin-bottom: 15px; color: #0056b3; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .content-type-header:first-child { margin-top: 0; }
         ul { list-style-type: none; padding-left: 0; }
-        li { margin-bottom: 8px; }
-        li a { text-decoration: none; color: #007bff; background-color: #f8f9fa; display: block; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s, color 0.2s; }
+        li { margin-bottom: 10px; }
+        li a { text-decoration: none; color: #007bff; background-color: #f8f9fa; display: block; padding: 10px 15px; border-radius: 4px; transition: background-color 0.2s, color 0.2s; border: 1px solid #dee2e6; }
         li a:hover { background-color: #e2e6ea; color: #0056b3; }
         #loader, #message { text-align: center; font-size: 1.2em; margin-top: 50px; }
         .error-message { color: #721c24; background-color: #f8d7da; padding: 15px; border-radius: 5px; }
@@ -25,10 +25,13 @@
 
     <div class="container">
         <div class="header">
-            <h1 id="className"></h1>
+            <h1 id="chapterTitle"></h1>
             <h2 id="subjectName"></h2>
+            <h3 id="className"></h3>
         </div>
-        <div id="contentContainer"></div>
+        <div id="contentContainer" style="display: none;">
+            <!-- Content for the specific chapter will be injected here -->
+        </div>
         <div id="loader">Loading content...</div>
         <div id="message" style="display: none;"></div>
     </div>
@@ -38,14 +41,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <script>
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
-            apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM",
-            authDomain: "tests-data-with-leaderboard.firebaseapp.com",
-            projectId: "tests-data-with-leaderboard",
-            storageBucket: "tests-data-with-leaderboard.firebasestorage.app",
-            messagingSenderId: "884648979462",
-            appId: "1:884648979462:web:446df6ccb02bf73397e787",
-            measurementId: "G-701ZP61XZT"
+          apiKey: "AIzaSyALyD306KRV3o4BF6JddkvESPRroU7ljDE",
+          authDomain: "study-books-45192.firebaseapp.com",
+          projectId: "study-books-45192",
+          storageBucket: "study-books-45192.firebasestorage.app",
+          messagingSenderId: "339305499523",
+          appId: "1:339305499523:web:c51eaccbdaebe1293004b6",
+          measurementId: "G-MZWBP5RR9Z"
         };
         
         firebase.initializeApp(firebaseConfig);
@@ -55,54 +59,40 @@
             const params = new URLSearchParams(window.location.search);
             const className = params.get('class');
             const subject = params.get('subject');
+            const chapter = params.get('chapter');
 
             const contentContainer = document.getElementById('contentContainer');
             const loader = document.getElementById('loader');
             const messageDiv = document.getElementById('message');
 
-            if (!className || !subject) {
+            if (!className || !subject || !chapter) {
                 loader.style.display = 'none';
                 messageDiv.style.display = 'block';
-                messageDiv.textContent = 'Error: Class or subject not specified. Please go back and make a selection.';
+                messageDiv.textContent = 'Error: Missing class, subject, or chapter. Please go back and make a selection.';
                 return;
             }
             
-            document.getElementById('className').textContent = `Class: ${className}`;
+            // Update header with all details
+            document.getElementById('chapterTitle').textContent = chapter;
             document.getElementById('subjectName').textContent = `Subject: ${subject}`;
+            document.getElementById('className').textContent = `Class: ${className}`;
 
-            // Fetch content from Firestore
+            // Fetch specific chapter content from Firestore
             db.collection('content')
               .where('class', '==', className)
               .where('subject', '==', subject)
+              .where('chapter', '==', chapter)
               .get()
               .then((querySnapshot) => {
                     loader.style.display = 'none';
                     if (querySnapshot.empty) {
                         messageDiv.style.display = 'block';
-                        messageDiv.textContent = 'No content found for this class and subject yet. Please check back later.';
+                        messageDiv.textContent = 'No content items found for this specific chapter.';
                         return;
                     }
                     
-                    // Group documents by chapter client-side
-                    const chapters = {};
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const chapterName = data.chapter;
-                        
-                        // If this is the first time we see this chapter, initialize it
-                        if (!chapters[chapterName]) {
-                            chapters[chapterName] = { videos: [], pdfs: [] };
-                        }
-
-                        // Add content to the correct array (videos or pdfs)
-                        if (data.contentType === 'video') {
-                            chapters[chapterName].videos.push(data);
-                        } else if (data.contentType === 'pdf') {
-                            chapters[chapterName].pdfs.push(data);
-                        }
-                    });
-
-                    renderContent(chapters);
+                    contentContainer.style.display = 'block';
+                    renderChapterContent(querySnapshot.docs);
               })
               .catch((error) => {
                     loader.style.display = 'none';
@@ -110,44 +100,45 @@
                     messageDiv.innerHTML = `<div class="error-message">
                         <strong>An error occurred.</strong><br>
                         ${error.message}<br><br>
-                        This often means a Firestore index is required. Please check the browser's developer console (F12) for a link to create the necessary index.
+                        This almost always means a Firestore index is required for this query. Please check the browser's developer console (F12) for a link to create the necessary index.
                         </div>`;
                     console.error("Error getting documents: ", error);
               });
 
-            function renderContent(chapters) {
-                contentContainer.innerHTML = '';
-                // Sort chapter names alphabetically for consistent order
-                const sortedChapterNames = Object.keys(chapters).sort();
+            function renderChapterContent(docs) {
+                const videos = [];
+                const pdfs = [];
 
-                for (const chapterName of sortedChapterNames) {
-                    const chapterData = chapters[chapterName];
-                    const chapterCard = document.createElement('div');
-                    chapterCard.className = 'chapter-card';
-                    
-                    let cardHTML = `<h3>${chapterName}</h3>`;
-
-                    // Render Videos
-                    if (chapterData.videos && chapterData.videos.length > 0) {
-                        cardHTML += `<div class="content-type-header">Concept Videos</div><ul>`;
-                        chapterData.videos.forEach(video => {
-                            cardHTML += `<li><a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.title}</a></li>`;
-                        });
-                        cardHTML += `</ul>`;
+                docs.forEach(doc => {
+                    const data = doc.data();
+                    if (data.contentType === 'video') {
+                        videos.push(data);
+                    } else if (data.contentType === 'pdf') {
+                        pdfs.push(data);
                     }
+                });
 
-                    // Render PDFs
-                    if (chapterData.pdfs && chapterData.pdfs.length > 0) {
-                        cardHTML += `<div class="content-type-header">PDFs / Notes</div><ul>`;
-                        chapterData.pdfs.forEach(pdf => {
-                            cardHTML += `<li><a href="${pdf.url}" target="_blank" rel="noopener noreferrer">${pdf.title}</a></li>`;
-                        });
-                        cardHTML += `</ul>`;
-                    }
+                let html = '';
 
-                    chapterCard.innerHTML = cardHTML;
-                    contentContainer.appendChild(chapterCard);
+                // Render Videos
+                if (videos.length > 0) {
+                    html += `<div class="content-type-header">Concept Videos</div><ul>`;
+                    videos.forEach(video => {
+                        html += `<li><a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.title}</a></li>`;
+                    });
+                    html += `</ul>`;
                 }
+
+                // Render PDFs
+                if (pdfs.length > 0) {
+                    html += `<div class="content-type-header">PDFs / Notes</div><ul>`;
+                    pdfs.forEach(pdf => {
+                        html += `<li><a href="${pdf.url}" target="_blank" rel="noopener noreferrer">${pdf.title}</a></li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                contentContainer.innerHTML = html;
             }
         });
     </script>
