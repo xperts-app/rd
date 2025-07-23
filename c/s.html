@@ -29,15 +29,13 @@
         body { font-family: 'Inter', sans-serif; background-color: var(--body-bg); color: var(--text-color); }
         .app-container { max-width: 600px; margin: 0 auto; }
 
-        /* --- CORRECTED HEADER STYLE --- */
+        /* --- Header Style --- */
         .subject-header {
-            background-color: var(--card-bg); /* White background */
-            color: var(--text-color);         /* Dark text */
+            background-color: var(--card-bg);
+            color: var(--text-color);
             padding: 20px;
-            padding-top: 50px; /* Space for status bar on mobile */
-            border-bottom: 4px solid var(--accent-color); /* Dynamic color on border only */
-            
-            /* ADDED: Rounded corners and shadow */
+            padding-top: 50px;
+            border-bottom: 4px solid var(--accent-color);
             border-bottom-left-radius: 24px;
             border-bottom-right-radius: 24px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -52,10 +50,8 @@
         .header-title .class-name { font-size: 16px; color: var(--subtle-text-color); }
         .sparkle-icon { font-size: 28px; color: #EAB308; }
         
-        /* --- Content Body --- */
         .content-body { padding: 20px; }
         
-        /* --- Recent Topic Card (Static example) --- */
         .recent-topic-card {
             background: var(--card-bg); padding: 16px; border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); margin-bottom: 20px;
@@ -66,7 +62,6 @@
         .recent-topic-card .topic-label { font-size: 14px; font-weight: 500; color: var(--accent-color); }
         .recent-topic-card .arrow-icon { font-size: 20px; color: var(--subtle-text-color); }
 
-        /* --- All Chapters Card --- */
         .chapters-card { background-color: var(--card-bg); border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); overflow: hidden; }
         .card-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border-color); }
         .card-header h2 { font-size: 18px; font-weight: 600; }
@@ -80,7 +75,6 @@
         #chapter-list li:last-child a { border-bottom: none; }
         #chapter-list li a:hover { background-color: #f8f9fa; }
         
-        /* --- Loader & Messages --- */
         #loader, #message { text-align: center; font-size: 1em; padding: 40px; color: var(--subtle-text-color); }
         .error-message { color: #c53030; background-color: #fed7d7; padding: 15px; border-radius: 5px; margin: 20px; }
     </style>
@@ -101,10 +95,10 @@
         </header>
 
         <div class="content-body">
-            <!-- This is a static placeholder to match the UI. It can be made dynamic later. -->
-            <a href="#" class="recent-topic-card">
+            <!-- UPDATED: Added IDs and set default display to none -->
+            <a href="#" class="recent-topic-card" id="recent-topic-card" style="display: none;">
                 <div>
-                    <p class="topic-name">Biomolecules</p>
+                    <p class="topic-name" id="recent-topic-name"></p>
                     <p class="topic-label">Recent Topic</p>
                 </div>
                 <span class="arrow-icon">></span>
@@ -122,7 +116,7 @@
                 </div>
                 <div id="loader">Loading Chapters...</div>
                 <ul id="chapter-list">
-                    <!-- Chapter links will be injected here by JavaScript -->
+                    <!-- Chapter links will be injected here -->
                 </ul>
             </div>
         </div>
@@ -152,17 +146,10 @@
             'MATH': 'theme-math', 'CHEM': 'theme-chem', 'SST': 'theme-sst',
         };
 
-        // ADDED: Map for displaying full, user-friendly names
         const fullNameMap = {
-            'BIO': 'Biology',
-            'BOTANY': 'Botany',
-            'ZOOLOGY': 'Zoology',
-            'ENG': 'English',
-            'PHY': 'Physics',
-            'PHYSICS': 'Physics',
-            'MATH': 'Mathematics',
-            'CHEM': 'Chemistry',
-            'SST': 'Social Science',
+            'BIO': 'Biology', 'BOTANY': 'Botany', 'ZOOLOGY': 'Zoology',
+            'ENG': 'English', 'PHY': 'Physics', 'PHYSICS': 'Physics',
+            'MATH': 'Mathematics', 'CHEM': 'Chemistry', 'SST': 'Social Science',
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -175,7 +162,7 @@
 
             const params = new URLSearchParams(window.location.search);
             const className = params.get('class');
-            const subjectKey = params.get('subject'); // Using 'subjectKey' for clarity
+            const subjectKey = params.get('subject');
 
             if (!className || !subjectKey) {
                 loaderEl.innerHTML = `<div class="error-message"><p>Error: Class and Subject must be provided in the URL.<br>Example: 2.html?class=11%20NEET&subject=BOTANY</p></div>`;
@@ -184,21 +171,31 @@
                 return;
             }
 
-            // Apply theme based on the key from the URL
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) { body.classList.add(themeClass); }
 
-            // CORRECTED: Display the full name
             const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
             subjectNameEl.textContent = displaySubjectName;
             classNameEl.textContent = `Class ${className.replace(/%20/g, ' ')}`;
             
+            // --- NEW: LOGIC TO LOAD RECENT TOPIC ---
+            const recentTopicCard = document.getElementById('recent-topic-card');
+            const recentTopicNameEl = document.getElementById('recent-topic-name');
+            const storageKey = `recent_topic_${className}_${subjectKey}`;
+            const recentChapter = localStorage.getItem(storageKey);
+
+            if (recentChapter) {
+                recentTopicNameEl.textContent = recentChapter;
+                const recentHref = `3.html?class=${encodeURIComponent(className)}&subject=${encodeURIComponent(subjectKey)}&chapter=${encodeURIComponent(recentChapter)}`;
+                recentTopicCard.href = recentHref;
+                recentTopicCard.style.display = 'flex'; // Make the card visible
+            }
+            // --- END OF NEW LOGIC ---
+
             try {
-                // Query Firestore using the key from the URL
                 const querySnapshot = await db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).get();
                 const existingChapters = new Set();
                 querySnapshot.forEach(doc => { existingChapters.add(doc.data().chapter); });
-
                 loaderEl.style.display = 'none';
                 
                 if (existingChapters.size === 0) {
@@ -210,7 +207,9 @@
                     let html = '';
                     sortedChapters.forEach(chapterName => {
                         const href = `3.html?class=${encodeURIComponent(className)}&subject=${encodeURIComponent(subjectKey)}&chapter=${encodeURIComponent(chapterName)}`;
-                        html += `<li><a href="${href}">${chapterName}</a></li>`;
+                        // ADDED: onclick event to save the chapter name to localStorage
+                        const escapedChapterName = chapterName.replace(/'/g, "\\'"); // Sanitize for JS string
+                        html += `<li><a href="${href}" onclick="localStorage.setItem('${storageKey}', '${escapedChapterName}')">${chapterName}</a></li>`;
                     });
                     chapterListEl.innerHTML = html;
                 }
