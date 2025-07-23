@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continue Watching</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #121212; --card-dark: #1e1e1e; --text-primary: #ffffff;
+            --text-secondary: #b3b3b3; --progress-bg: rgba(255, 255, 255, 0.2);
+        }
+        .theme-bio, .theme-botany, .theme-zoology { --accent-color: #1DB954; }
+        .theme-eng { --accent-color: #EF4444; }
+        .theme-phy, .theme-physics { --accent-color: #3B82F6; }
+        .theme-math { --accent-color: #0EA5E9; }
+        .theme-chem, .theme-sst { --accent-color: #A855F7; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-primary); margin: 0; }
+        .page-container { padding: 20px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; padding-left: 5px; }
+        .carousel { position: relative; width: 100%; overflow: hidden; cursor: grab; }
+        .carousel.grabbing { cursor: grabbing; }
+        .carousel-track { display: flex; gap: 16px; user-select: none; }
+        .carousel-card {
+            flex-shrink: 0; width: 220px; height: 280px; border-radius: 12px;
+            overflow: hidden; position: relative; background-color: #333;
+            display: block; text-decoration: none; color: var(--text-primary);
+            transition: transform 0.2s ease;
+        }
+        .carousel-card:hover { transform: scale(1.03); }
+        .card-thumbnail { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+        .card-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 40%, transparent 100%);
+            z-index: 2;
+        }
+        .card-content {
+            position: relative; z-index: 3; padding: 16px; height: 100%;
+            display: flex; flex-direction: column; justify-content: flex-end;
+        }
+        .card-title { font-size: 18px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; }
+        .card-subtitle { font-size: 14px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .progress-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 5px; background-color: var(--progress-bg); z-index: 3; }
+        .progress-bar { height: 100%; background-color: var(--accent-color, #1DB954); border-radius: 0 2px 2px 0; }
+        #message { text-align: center; padding: 40px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <h1 class="page-title">Continue Watching</h1>
+        <div class="carousel" id="carousel">
+            <div class="carousel-track" id="carousel-track"></div>
+            <div id="message" style="display: none;">You haven't watched any videos yet.</div>
+        </div>
+    </div>
+    <script>
+        const themeMap = {
+            'BIO': 'theme-bio', 'BOTANY': 'theme-botany', 'ZOOLOGY': 'theme-zoology', 'ENG': 'theme-eng',
+            'PHY': 'theme-phy', 'PHYSICS': 'theme-physics', 'MATH': 'theme-math', 'CHEM': 'theme-chem', 'SST': 'theme-sst',
+        };
+        const imageUrlMap = {
+            'BIO': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRCbI9u0vnAPreKu_czfW4IFbD4OzIDIe4WeUcDudx__tNt7-qVhEbMiXSf&s=10', 'BOTANY': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSzfxKjJdl013x1O3Ox8HvMx0FwU7Ya_TowO322qKTUZRZMqfHg56MchPN&s=10',
+            'ZOOLOGY': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvG-iWy6UbJGNiEWcph8fK0xPawpdecXLTXzhTlAalanirs9LR0xRKenrV&s=10', 'ENG': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoSu1f6dLV5meh_lKHOhg_VrfABZ4Pg6hxw8JsdA4JHeN-17-w3znwBi7z&s=10',
+            'PHY': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10', 'PHYSICS': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10',
+            'MATH': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10', 'CHEM': 'https://plus.unsplash.com/premium_photo-1681426678542-613c306013e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2hlbWlzdHJ5fGVufDB8fDB8fHww',
+            'SST': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10'
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const carouselTrack = document.getElementById('carousel-track');
+            const messageEl = document.getElementById('message');
+            const continueWatchingList = JSON.parse(localStorage.getItem('continueWatchingList')) || [];
+
+            if (continueWatchingList.length === 0) { messageEl.style.display = 'block'; return; }
+
+            carouselTrack.innerHTML = continueWatchingList.map(video => {
+                const themeClass = themeMap[video.subject.toUpperCase()] || '';
+                const thumbUrl = imageUrlMap[video.subject.toUpperCase()] || 'https://via.placeholder.com/220x280';
+                return `
+                    <a href="${video.url}" target="_blank" class="carousel-card ${themeClass}">
+                        <img src="${thumbUrl}" alt="${video.title}" class="card-thumbnail">
+                        <div class="card-overlay"></div>
+                        <div class="card-content">
+                            <h3 class="card-title">${video.title}</h3>
+                            <p class="card-subtitle">${video.chapter}</p>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${video.progress || 0}%;"></div>
+                        </div>
+                    </a>`;
+            }).join('');
+
+            const carousel = document.getElementById('carousel');
+            let isDown = false, startX, scrollLeft;
+            carousel.addEventListener('mousedown', (e) => { isDown = true; carousel.classList.add('grabbing'); startX = e.pageX - carousel.offsetLeft; scrollLeft = carousel.scrollLeft; });
+            carousel.addEventListener('mouseleave', () => { isDown = false; carousel.classList.remove('grabbing'); });
+            carousel.addEventListener('mouseup', () => { isDown = false; carousel.classList.remove('grabbing'); });
+            carousel.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - carousel.offsetLeft;
+                const walk = (x - startX) * 2;
+                carousel.scrollLeft = scrollLeft - walk;
+            });
+        });
+    </script>
+</body>
+</html>
