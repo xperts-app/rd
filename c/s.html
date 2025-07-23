@@ -10,8 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Default accent color, will be overridden by theme */
-            --accent-color: #6d6d6d; /* A neutral gray */
+            --accent-color: #6d6d6d; 
             --text-color: #1a202c;
             --subtle-text-color: #718096;
             --border-color: #e2e8f0;
@@ -26,170 +25,79 @@
         .theme-math { --accent-color: #0EA5E9; } /* Sky Blue */
         .theme-chem, .theme-sst { --accent-color: #A855F7; } /* Magenta/Purple */
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--body-bg); color: var(--text-color); }
+        .app-container { max-width: 600px; margin: 0 auto; }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--body-bg);
-            color: var(--text-color);
-        }
-
-        .app-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* --- Header --- */
+        /* --- CORRECTED HEADER STYLE --- */
         .subject-header {
-            /* CORRECTED STYLES */
-            background-color: var(--card-bg); /* Header background is now white */
-            color: var(--text-color); /* Text is now dark */
+            background-color: var(--card-bg); /* White background */
+            color: var(--text-color);         /* Dark text */
             padding: 20px;
-            padding-top: 50px;
-            /* The dynamic color is now applied to the border */
-            border-bottom: 4px solid var(--accent-color); 
+            padding-top: 50px; /* Space for status bar on mobile */
+            border-bottom: 4px solid var(--accent-color); /* Dynamic color on border only */
+            
+            /* ADDED: Rounded corners and shadow */
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            position: relative;
+            z-index: 10;
         }
 
-        .header-main {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .back-arrow {
-            font-size: 24px;
-            color: var(--text-color); /* Back arrow is now dark */
-            text-decoration: none;
-        }
-
-        .header-title h1 {
-            font-size: 28px;
-            font-weight: 700;
-        }
-        .header-title .class-name {
-            font-size: 16px;
-            color: var(--subtle-text-color); /* Subtitle uses subtle color */
-        }
-        .sparkle-icon {
-            font-size: 28px;
-            color: #EAB308; /* Gold color for sparkle to match image */
-        }
+        .header-main { display: flex; align-items: center; justify-content: space-between;}
+        .header-main > div { display: flex; align-items: center; gap: 15px;}
+        .back-arrow { font-size: 24px; color: var(--text-color); text-decoration: none; }
+        .header-title h1 { font-size: 28px; font-weight: 700; }
+        .header-title .class-name { font-size: 16px; color: var(--subtle-text-color); }
+        .sparkle-icon { font-size: 28px; color: #EAB308; }
         
         /* --- Content Body --- */
-        .content-body {
-            padding: 20px;
-        }
+        .content-body { padding: 20px; }
         
         /* --- Recent Topic Card (Static example) --- */
         .recent-topic-card {
-            background: var(--card-bg);
-            padding: 16px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-color);
+            background: var(--card-bg); padding: 16px; border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            text-decoration: none; color: var(--text-color);
         }
-        .recent-topic-card .topic-name {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .recent-topic-card .topic-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--accent-color);
-        }
-        .recent-topic-card .arrow-icon {
-            font-size: 20px;
-            color: var(--subtle-text-color);
-        }
+        .recent-topic-card .topic-name { font-size: 18px; font-weight: 600; }
+        .recent-topic-card .topic-label { font-size: 14px; font-weight: 500; color: var(--accent-color); }
+        .recent-topic-card .arrow-icon { font-size: 20px; color: var(--subtle-text-color); }
 
         /* --- All Chapters Card --- */
-        .chapters-card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-        }
-
-        .card-header {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .card-header h2 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .card-header .chapter-count {
-            font-size: 14px;
-            color: var(--subtle-text-color);
-        }
-        #toggle-chapters {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-        #toggle-chapters.collapsed {
-            transform: rotate(180deg);
-        }
+        .chapters-card { background-color: var(--card-bg); border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); overflow: hidden; }
+        .card-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border-color); }
+        .card-header h2 { font-size: 18px; font-weight: 600; }
+        .card-header .chapter-count { font-size: 14px; color: var(--subtle-text-color); }
+        #toggle-chapters { background: none; border: none; font-size: 20px; cursor: pointer; transition: transform 0.3s ease; }
+        #toggle-chapters.collapsed { transform: rotate(180deg); }
         
-        #chapter-list {
-            list-style: none;
-            max-height: 1000px; /* High value for animation */
-            transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
-            opacity: 1;
-        }
-        #chapter-list.collapsed {
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-        }
-        #chapter-list li a {
-            display: block;
-            padding: 16px 20px;
-            text-decoration: none;
-            color: var(--text-color);
-            font-weight: 500;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s ease;
-        }
-        #chapter-list li:last-child a {
-            border-bottom: none;
-        }
-        #chapter-list li a:hover {
-            background-color: #f8f9fa;
-        }
+        #chapter-list { list-style: none; max-height: 1000px; transition: max-height 0.5s ease-in-out, opacity 0.3s ease; opacity: 1; }
+        #chapter-list.collapsed { max-height: 0; opacity: 0; overflow: hidden; }
+        #chapter-list li a { display: block; padding: 16px 20px; text-decoration: none; color: var(--text-color); font-weight: 500; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; }
+        #chapter-list li:last-child a { border-bottom: none; }
+        #chapter-list li a:hover { background-color: #f8f9fa; }
         
         /* --- Loader & Messages --- */
         #loader, #message { text-align: center; font-size: 1em; padding: 40px; color: var(--subtle-text-color); }
         .error-message { color: #c53030; background-color: #fed7d7; padding: 15px; border-radius: 5px; margin: 20px; }
-
     </style>
 </head>
 <body class="theme-default">
     <main class="app-container">
         <header class="subject-header">
             <div class="header-main">
-                <a href="javascript:history.back()" class="back-arrow">←</a>
-                <div class="header-title">
-                    <h1 id="subject-name">Loading...</h1>
-                    <p class="class-name" id="class-name"></p>
+                <div>
+                    <a href="javascript:history.back()" class="back-arrow">←</a>
+                    <div class="header-title">
+                        <h1 id="subject-name">Loading...</h1>
+                        <p class="class-name" id="class-name"></p>
+                    </div>
                 </div>
+                <span class="sparkle-icon">✨</span>
             </div>
-            <span class="sparkle-icon">✨</span>
         </header>
 
         <div class="content-body">
@@ -239,15 +147,22 @@
         const db = firebase.firestore();
         
         const themeMap = {
-            'BIO': 'theme-bio',
-            'BOTANY': 'theme-botany',
-            'ZOOLOGY': 'theme-zoology',
-            'ENG': 'theme-eng',
-            'PHY': 'theme-phy',
-            'PHYSICS': 'theme-physics',
-            'MATH': 'theme-math',
-            'CHEM': 'theme-chem',
-            'SST': 'theme-sst',
+            'BIO': 'theme-bio', 'BOTANY': 'theme-botany', 'ZOOLOGY': 'theme-zoology',
+            'ENG': 'theme-eng', 'PHY': 'theme-phy', 'PHYSICS': 'theme-physics',
+            'MATH': 'theme-math', 'CHEM': 'theme-chem', 'SST': 'theme-sst',
+        };
+
+        // ADDED: Map for displaying full, user-friendly names
+        const fullNameMap = {
+            'BIO': 'Biology',
+            'BOTANY': 'Botany',
+            'ZOOLOGY': 'Zoology',
+            'ENG': 'English',
+            'PHY': 'Physics',
+            'PHYSICS': 'Physics',
+            'MATH': 'Mathematics',
+            'CHEM': 'Chemistry',
+            'SST': 'Social Science',
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -260,36 +175,29 @@
 
             const params = new URLSearchParams(window.location.search);
             const className = params.get('class');
-            const subjectName = params.get('subject');
+            const subjectKey = params.get('subject'); // Using 'subjectKey' for clarity
 
-            if (!className || !subjectName) {
+            if (!className || !subjectKey) {
                 loaderEl.innerHTML = `<div class="error-message"><p>Error: Class and Subject must be provided in the URL.<br>Example: 2.html?class=11%20NEET&subject=BOTANY</p></div>`;
                 subjectNameEl.textContent = "Error";
                 classNameEl.textContent = "Invalid Parameters";
                 return;
             }
 
-            // Apply the correct theme
-            const themeClass = themeMap[subjectName.toUpperCase()];
-            if (themeClass) {
-                body.classList.add(themeClass);
-            }
+            // Apply theme based on the key from the URL
+            const themeClass = themeMap[subjectKey.toUpperCase()];
+            if (themeClass) { body.classList.add(themeClass); }
 
-            // Update UI headers
-            subjectNameEl.textContent = subjectName;
+            // CORRECTED: Display the full name
+            const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
+            subjectNameEl.textContent = displaySubjectName;
             classNameEl.textContent = `Class ${className.replace(/%20/g, ' ')}`;
             
-            // Fetch chapters
             try {
-                const querySnapshot = await db.collection('content')
-                    .where('class', '==', className)
-                    .where('subject', '==', subjectName)
-                    .get();
-
+                // Query Firestore using the key from the URL
+                const querySnapshot = await db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).get();
                 const existingChapters = new Set();
-                querySnapshot.forEach(doc => {
-                    existingChapters.add(doc.data().chapter);
-                });
+                querySnapshot.forEach(doc => { existingChapters.add(doc.data().chapter); });
 
                 loaderEl.style.display = 'none';
                 
@@ -300,12 +208,10 @@
                     chapterCountEl.textContent = `${existingChapters.size} chapters`;
                     const sortedChapters = [...existingChapters].sort((a, b) => a.localeCompare(b));
                     let html = '';
-                    
                     sortedChapters.forEach(chapterName => {
-                        const href = `3.html?class=${encodeURIComponent(className)}&subject=${encodeURIComponent(subjectName)}&chapter=${encodeURIComponent(chapterName)}`;
+                        const href = `3.html?class=${encodeURIComponent(className)}&subject=${encodeURIComponent(subjectKey)}&chapter=${encodeURIComponent(chapterName)}`;
                         html += `<li><a href="${href}">${chapterName}</a></li>`;
                     });
-                    
                     chapterListEl.innerHTML = html;
                 }
             } catch (error) {
@@ -313,7 +219,6 @@
                 loaderEl.innerHTML = `<div class="error-message"><p>Error loading chapters. This may be due to a missing Firestore index. Please check the developer console (F12).</p></div>`;
             }
 
-            // Toggle functionality for chapter list
             const toggleButton = document.getElementById('toggle-chapters');
             const cardHeader = document.getElementById('card-header-toggle');
             cardHeader.addEventListener('click', () => {
