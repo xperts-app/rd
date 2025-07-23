@@ -27,29 +27,17 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background-color: var(--body-bg); color: var(--text-primary); }
-        .app-container { max-width: 600px; margin: 0 auto; padding-bottom: 100px; /* Space for bottom nav */ }
+        .app-container { max-width: 600px; margin: 0 auto; padding-bottom: 100px; }
 
         /* --- Header --- */
         .chapter-header {
-            color: white;
-            padding: 20px;
-            padding-top: 50px;
-            border-bottom: 4px solid var(--accent-color);
-            border-bottom-left-radius: 24px;
-            border-bottom-right-radius: 24px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: flex-start;
-            min-height: 180px;
-            
-            /* Background Image - REPLACE THIS URL WITH YOUR OWN */
-            background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
+            color: white; padding: 20px; padding-top: 50px;
+            border-bottom: 4px solid var(--accent-color); border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative; overflow: hidden; display: flex; align-items: flex-start;
+            min-height: 180px; background-size: cover; background-position: center;
         }
-        .chapter-header::before { /* Darkening overlay for text readability */
+        .chapter-header::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
             z-index: 1;
@@ -63,18 +51,13 @@
         .header-title h1 { font-size: 28px; font-weight: 700; }
         .header-title .class-details { font-size: 16px; opacity: 0.9; }
         
-        /* --- Content Body --- */
         .content-body { padding: 20px; }
-        .content-section { display: none; } /* Hidden by default */
+        .content-section { display: none; }
         .content-section.active { display: block; }
         .content-section h2 { font-size: 22px; margin-bottom: 5px; font-weight: 700; }
-        .section-underline {
-            height: 4px; width: 50px; background-color: #EAB308; /* Gold underline like in image */
-            border-radius: 2px; margin-bottom: 20px;
-        }
+        .section-underline { height: 4px; width: 50px; background-color: #EAB308; border-radius: 2px; margin-bottom: 20px; }
         .content-list { list-style: none; }
         
-        /* --- List Item Style --- */
         .content-item {
             display: flex; align-items: center; gap: 15px;
             padding: 10px 0; border-bottom: 1px solid var(--border-color);
@@ -82,22 +65,21 @@
         }
         .item-thumbnail {
             flex-shrink: 0; width: 120px; height: 70px; border-radius: 12px;
-            background-color: var(--accent-color); position: relative; overflow: hidden;
+            background-color: #ccc; position: relative; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
             font-size: 18px; color: white; font-weight: bold;
         }
+        .thumbnail-img { width: 100%; height: 100%; object-fit: cover; } /* Style for the new img tag */
         .thumbnail-icon { font-size: 28px; }
         .item-details { flex-grow: 1; }
         .item-title { font-weight: 500; line-height: 1.4; }
         .item-action { flex-shrink: 0; }
         .download-icon { font-size: 24px; color: var(--text-secondary); }
         
-        /* --- Bottom Navigation --- */
         .bottom-nav {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--card-bg); border-radius: 999px; /* Pill shape */
-            padding: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            display: flex; gap: 8px; z-index: 100;
+            background: var(--card-bg); border-radius: 999px; padding: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15); display: flex; gap: 8px; z-index: 100;
         }
         .nav-btn {
             background: transparent; border: none; padding: 10px 24px; border-radius: 999px;
@@ -113,7 +95,7 @@
 <body class="theme-default">
 
     <div class="app-container">
-        <header class="chapter-header">
+        <header class="chapter-header" id="chapter-header">
             <div class="header-content">
                 <a href="javascript:history.back()" class="back-arrow">←</a>
                 <div class="header-title">
@@ -125,17 +107,11 @@
 
         <main class="content-body">
             <div id="loader">Loading content...</div>
-            
             <section id="videos-section" class="content-section">
-                <h2>Concept Videos</h2>
-                <div class="section-underline"></div>
-                <ul class="content-list" id="video-list"></ul>
+                <h2>Concept Videos</h2><div class="section-underline"></div><ul class="content-list" id="video-list"></ul>
             </section>
-
             <section id="notes-section" class="content-section">
-                <h2>Notes</h2>
-                <div class="section-underline"></div>
-                <ul class="content-list" id="pdf-list"></ul>
+                <h2>Notes</h2><div class="section-underline"></div><ul class="content-list" id="pdf-list"></ul>
             </section>
         </main>
     </div>
@@ -173,64 +149,68 @@
             'CHEM': 'Chemistry', 'SST': 'Social Science',
         };
 
+        // NEW: Map for subject-specific images
+        const imageUrlMap = {
+            'BIO': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRCbI9u0vnAPreKu_czfW4IFbD4OzIDIe4WeUcDudx__tNt7-qVhEbMiXSf&s=10',
+            'BOTANY': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSzfxKjJdl013x1O3Ox8HvMx0FwU7Ya_TowO322qKTUZRZMqfHg56MchPN&s=10',
+            'ZOOLOGY': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvG-iWy6UbJGNiEWcph8fK0xPawpdecXLTXzhTlAalanirs9LR0xRKenrV&s=10',
+            'ENG': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoSu1f6dLV5meh_lKHOhg_VrfABZ4Pg6hxw8JsdA4JHeN-17-w3znwBi7z&s=10',
+            'PHY': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10',
+            'PHYSICS': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10',
+            'MATH': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10',
+            'CHEM': 'https://plus.unsplash.com/premium_photo-1681426678542-613c306013e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2hlbWlzdHJ5fGVufDB8fDB8fHww',
+            'SST': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10'
+        };
+
         document.addEventListener('DOMContentLoaded', async () => {
-            const body = document.body;
-            const chapterTitleEl = document.getElementById('chapter-title');
-            const classDetailsEl = document.getElementById('class-details');
-            const loaderEl = document.getElementById('loader');
-            const videoListEl = document.getElementById('video-list');
-            const pdfListEl = document.getElementById('pdf-list');
-            const videosSection = document.getElementById('videos-section');
-            const notesSection = document.getElementById('notes-section');
-            const learnBtn = document.getElementById('learn-btn');
-            const notesBtn = document.getElementById('notes-btn');
+            const body = document.body, chapterHeaderEl = document.getElementById('chapter-header'),
+                chapterTitleEl = document.getElementById('chapter-title'), classDetailsEl = document.getElementById('class-details'),
+                loaderEl = document.getElementById('loader'), videoListEl = document.getElementById('video-list'),
+                pdfListEl = document.getElementById('pdf-list'), videosSection = document.getElementById('videos-section'),
+                notesSection = document.getElementById('notes-section'), learnBtn = document.getElementById('learn-btn'),
+                notesBtn = document.getElementById('notes-btn');
 
             const params = new URLSearchParams(window.location.search);
-            const className = params.get('class');
-            const subjectKey = params.get('subject');
-            const chapterName = params.get('chapter');
+            const className = params.get('class'), subjectKey = params.get('subject'), chapterName = params.get('chapter');
 
             if (!className || !subjectKey || !chapterName) {
-                loaderEl.innerHTML = `<div class="error-message">Error: Missing required URL parameters.</div>`;
-                return;
+                loaderEl.innerHTML = `<div class="error-message">Error: Missing required URL parameters.</div>`; return;
             }
 
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) body.classList.add(themeClass);
             
+            // NEW: Set header background image
+            const headerImageUrl = imageUrlMap[subjectKey.toUpperCase()];
+            if(headerImageUrl) {
+                chapterHeaderEl.style.backgroundImage = `url('${headerImageUrl}')`;
+            }
+
             const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
             chapterTitleEl.textContent = chapterName;
             classDetailsEl.textContent = `Class ${className.replace(/%20/g, ' ')} • ${displaySubjectName}`;
 
             try {
-                const querySnapshot = await db.collection('content')
-                    .where('class', '==', className)
-                    .where('subject', '==', subjectKey)
-                    .where('chapter', '==', chapterName)
-                    .get();
-
-                const videos = [];
-                const pdfs = [];
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.contentType === 'video') videos.push(data);
-                    else if (data.contentType === 'pdf') pdfs.push(data);
-                });
-
+                const querySnapshot = await db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).where('chapter', '==', chapterName).get();
+                const videos = [], pdfs = [];
+                querySnapshot.forEach(doc => { const data = doc.data(); if (data.contentType === 'video') videos.push(data); else if (data.contentType === 'pdf') pdfs.push(data); });
                 loaderEl.style.display = 'none';
                 
+                // NEW: Get the thumbnail URL for this subject
+                const videoThumbUrl = imageUrlMap[subjectKey.toUpperCase()] || '';
+
                 if (videos.length > 0) {
                     videoListEl.innerHTML = videos.map(item => `
                         <li>
                             <a href="${item.url}" target="_blank" class="content-item">
-                                <div class="item-thumbnail"><span class="thumbnail-icon">►</span></div>
+                                <div class="item-thumbnail">
+                                    ${videoThumbUrl ? `<img src="${videoThumbUrl}" alt="Video thumbnail" class="thumbnail-img">` : `<span class="thumbnail-icon">►</span>`}
+                                </div>
                                 <div class="item-details"><p class="item-title">${item.title}</p></div>
                                 <div class="item-action"><span class="download-icon">↓</span></div>
                             </a>
                         </li>`).join('');
-                } else {
-                    videosSection.innerHTML += '<p>No videos found for this chapter.</p>';
-                }
+                } else { videosSection.innerHTML += '<p>No videos found for this chapter.</p>'; }
 
                 if (pdfs.length > 0) {
                     pdfListEl.innerHTML = pdfs.map(item => `
@@ -241,12 +221,9 @@
                                 <div class="item-action"><span class="download-icon">↓</span></div>
                             </a>
                         </li>`).join('');
-                } else {
-                    notesSection.innerHTML += '<p>No notes found for this chapter.</p>';
-                }
+                } else { notesSection.innerHTML += '<p>No notes found for this chapter.</p>'; }
                 
                 videosSection.classList.add('active');
-
             } catch (error) {
                 loaderEl.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
                 console.error("Error fetching content: ", error);
@@ -260,7 +237,6 @@
                 notesBtn.classList.add('active'); learnBtn.classList.remove('active');
                 notesSection.classList.add('active'); videosSection.classList.remove('active');
             });
-
         });
     </script>
 </body>
