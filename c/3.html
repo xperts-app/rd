@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Viewer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .header h1, .header h2 {
+            margin: 0;
+        }
+        #contentContainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .chapter-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .chapter-card h3 {
+            color: #0056b3;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .content-type-header {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        li a {
+            text-decoration: none;
+            color: #007bff;
+            background-color: #f8f9fa;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        li a:hover {
+            background-color: #e2e6ea;
+            color: #0056b3;
+        }
+        #loader, #message {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1 id="className"></h1>
+            <h2 id="subjectName"></h2>
+        </div>
+        <div id="contentContainer">
+            <!-- Content will be injected here -->
+        </div>
+        <div id="loader">Loading content...</div>
+        <div id="message" style="display: none;"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVIgUAmKlJqwvkd9kblaujzIVlSq9_EiM",
+            authDomain: "tests-data-with-leaderboard.firebaseapp.com",
+            projectId: "tests-data-with-leaderboard",
+            storageBucket: "tests-data-with-leaderboard.firebasestorage.app",
+            messagingSenderId: "884648979462",
+            appId: "1:884648979462:web:446df6ccb02bf73397e787",
+            measurementId: "G-701ZP61XZT"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Helper to create a Firebase-safe key from a string
+        const createKey = (str) => str.replace(/\s+/g, '_').replace(/\./g, '');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const className = params.get('class');
+            const subject = params.get('subject');
+
+            const contentContainer = document.getElementById('contentContainer');
+            const loader = document.getElementById('loader');
+            const messageDiv = document.getElementById('message');
+
+            if (!className || !subject) {
+                loader.style.display = 'none';
+                messageDiv.style.display = 'block';
+                messageDiv.textContent = 'Error: Class or subject not specified. Please go back and make a selection.';
+                return;
+            }
+            
+            // Display header info
+            document.getElementById('className').textContent = `Class: ${className}`;
+            document.getElementById('subjectName').textContent = `Subject: ${subject}`;
+
+            // Fetch content from Firebase
+            const classKey = createKey(className);
+            const contentRef = database.ref(`content/${classKey}/${subject}/chapters`);
+            
+            contentRef.once('value', (snapshot) => {
+                loader.style.display = 'none';
+                if (snapshot.exists()) {
+                    const chapters = snapshot.val();
+                    renderContent(chapters);
+                } else {
+                    messageDiv.style.display = 'block';
+                    messageDiv.textContent = 'No content found for this class and subject yet. Please check back later.';
+                }
+            }).catch(error => {
+                loader.style.display = 'none';
+                messageDiv.style.display = 'block';
+                messageDiv.textContent = `An error occurred: ${error.message}`;
+            });
+
+            function renderContent(chapters) {
+                contentContainer.innerHTML = '';
+                for (const chapterName in chapters) {
+                    const chapterData = chapters[chapterName];
+                    const chapterCard = document.createElement('div');
+                    chapterCard.className = 'chapter-card';
+                    
+                    let cardHTML = `<h3>${chapterName}</h3>`;
+
+                    // Render Videos
+                    if (chapterData.videos && chapterData.videos.length > 0) {
+                        cardHTML += `<div class="content-type-header">Concept Videos</div><ul>`;
+                        chapterData.videos.forEach(video => {
+                            cardHTML += `<li><a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.title}</a></li>`;
+                        });
+                        cardHTML += `</ul>`;
+                    }
+
+                    // Render PDFs
+                    if (chapterData.pdfs && chapterData.pdfs.length > 0) {
+                        cardHTML += `<div class="content-type-header">PDFs / Notes</div><ul>`;
+                        chapterData.pdfs.forEach(pdf => {
+                            cardHTML += `<li><a href="${pdf.url}" target="_blank" rel="noopener noreferrer">${pdf.title}</a></li>`;
+                        });
+                        cardHTML += `</ul>`;
+                    }
+
+                    chapterCard.innerHTML = cardHTML;
+                    contentContainer.appendChild(chapterCard);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
