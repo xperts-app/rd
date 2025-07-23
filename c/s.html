@@ -12,7 +12,6 @@
         :root {
             /* Default accent color, will be overridden by theme */
             --accent-color: #6d6d6d; /* A neutral gray */
-            --accent-color-light: #f5f5f5;
             --text-color: #1a202c;
             --subtle-text-color: #718096;
             --border-color: #e2e8f0;
@@ -21,13 +20,11 @@
         }
 
         /* --- THEMES --- */
-        .theme-bio { --accent-color: #10B981; --accent-color-light: #f0fdf4; } /* Green */
-        .theme-botany { --accent-color: #10B981; --accent-color-light: #f0fdf4; } /* Green */
-        .theme-zoology { --accent-color: #10B981; --accent-color-light: #f0fdf4; } /* Green */
-        .theme-eng { --accent-color: #EF4444; --accent-color-light: #fef2f2; } /* Red */
-        .theme-phy, .theme-physics { --accent-color: #3B82F6; --accent-color-light: #eff6ff; } /* Blue */
-        .theme-math { --accent-color: #0EA5E9; --accent-color-light: #f0f9ff; } /* Sky Blue */
-        .theme-chem, .theme-sst { --accent-color: #A855F7; --accent-color-light: #faf5ff; } /* Magenta/Purple */
+        .theme-bio, .theme-botany, .theme-zoology { --accent-color: #10B981; } /* Green */
+        .theme-eng { --accent-color: #EF4444; } /* Red */
+        .theme-phy, .theme-physics { --accent-color: #3B82F6; } /* Blue */
+        .theme-math { --accent-color: #0EA5E9; } /* Sky Blue */
+        .theme-chem, .theme-sst { --accent-color: #A855F7; } /* Magenta/Purple */
 
         * {
             box-sizing: border-box;
@@ -48,15 +45,13 @@
 
         /* --- Header --- */
         .subject-header {
-            background-color: var(--accent-color);
-            color: white;
+            /* CORRECTED STYLES */
+            background-color: var(--card-bg); /* Header background is now white */
+            color: var(--text-color); /* Text is now dark */
             padding: 20px;
-            padding-top: 50px; /* Space for status bar on mobile */
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            padding-top: 50px;
+            /* The dynamic color is now applied to the border */
+            border-bottom: 4px solid var(--accent-color); 
         }
 
         .header-main {
@@ -67,7 +62,7 @@
 
         .back-arrow {
             font-size: 24px;
-            color: white;
+            color: var(--text-color); /* Back arrow is now dark */
             text-decoration: none;
         }
 
@@ -77,16 +72,16 @@
         }
         .header-title .class-name {
             font-size: 16px;
-            opacity: 0.9;
+            color: var(--subtle-text-color); /* Subtitle uses subtle color */
         }
         .sparkle-icon {
             font-size: 28px;
+            color: #EAB308; /* Gold color for sparkle to match image */
         }
         
         /* --- Content Body --- */
         .content-body {
             padding: 20px;
-            transform: translateY(-20px); /* Pulls content up slightly over the header curve */
         }
         
         /* --- Recent Topic Card (Static example) --- */
@@ -282,7 +277,7 @@
 
             // Update UI headers
             subjectNameEl.textContent = subjectName;
-            classNameEl.textContent = `Class ${className}`;
+            classNameEl.textContent = `Class ${className.replace(/%20/g, ' ')}`;
             
             // Fetch chapters
             try {
