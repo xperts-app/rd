@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Your Class</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 500px;
+            width: 90%;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #0056b3;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-align: left;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        select:disabled {
+            background-color: #e9ecef;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background-color: #218838;
+        }
+        button:disabled {
+            background-color: #a0d3ac;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Welcome, Student!</h1>
+        <p>Please select your class and subject to view content.</p>
+        <form id="filterForm">
+            <div class="form-group">
+                <label for="classSelect">Class:</label>
+                <select id="classSelect" required>
+                    <option value="">-- Select a Class --</option>
+                    <option value="6">Class 6</option>
+                    <option value="7">Class 7</option>
+                    <option value="8">Class 8</option>
+                    <option value="9">Class 9</option>
+                    <option value="10">Class 10</option>
+                    <option value="11 JEE">Class 11 JEE</option>
+                    <option value="11 NEET">Class 11 NEET</option>
+                    <option value="12 JEE">Class 12 JEE</option>
+                    <option value="12 NEET">Class 12 NEET</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="subjectSelect">Subject:</label>
+                <select id="subjectSelect" required disabled>
+                    <option value="">-- First, Select a Class --</option>
+                </select>
+            </div>
+            <button id="viewContentBtn" type="submit" disabled>View Content</button>
+        </form>
+    </div>
+
+    <script>
+        const classSelect = document.getElementById('classSelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const viewContentBtn = document.getElementById('viewContentBtn');
+        const filterForm = document.getElementById('filterForm');
+
+        const subjectsByClass = {
+            '6': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '7': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '8': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '9': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '10': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '11 JEE': ['PHYSICS', 'CHEM', 'MATH'],
+            '11 NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY'],
+            '12 JEE': ['PHYSICS', 'CHEM', 'MATH'],
+            '12 NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY'],
+        };
+        
+        classSelect.addEventListener('change', () => {
+            const selectedClass = classSelect.value;
+            subjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>';
+            viewContentBtn.disabled = true;
+
+            if (selectedClass && subjectsByClass[selectedClass]) {
+                const subjects = subjectsByClass[selectedClass];
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    subjectSelect.appendChild(option);
+                });
+                subjectSelect.disabled = false;
+            } else {
+                subjectSelect.disabled = true;
+            }
+        });
+
+        subjectSelect.addEventListener('change', () => {
+            if (subjectSelect.value) {
+                viewContentBtn.disabled = false;
+            } else {
+                viewContentBtn.disabled = true;
+            }
+        });
+
+        filterForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedClass = classSelect.value;
+            const selectedSubject = subjectSelect.value;
+
+            if (selectedClass && selectedSubject) {
+                // Encode the parameters to be safe in a URL
+                const classParam = encodeURIComponent(selectedClass);
+                const subjectParam = encodeURIComponent(selectedSubject);
+                // Redirect to the content viewer page with query parameters
+                window.location.href = `3.html?class=${classParam}&subject=${subjectParam}`;
+            }
+        });
+    </script>
+
+</body>
+</html>
