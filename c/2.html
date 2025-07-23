@@ -3,90 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Your Class</title>
+    <title>Select Your Content</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            max-width: 500px;
-            width: 90%;
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h1 {
-            color: #0056b3;
-            margin-bottom: 25px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            text-align: left;
-        }
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        select:disabled {
-            background-color: #e9ecef;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 18px;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        button:hover:not(:disabled) {
-            background-color: #218838;
-        }
-        button:disabled {
-            background-color: #a0d3ac;
-            cursor: not-allowed;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { max-width: 500px; width: 90%; padding: 30px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #0056b3; margin-bottom: 25px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; text-align: left; }
+        select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        select:disabled { background-color: #e9ecef; cursor: not-allowed; }
+        button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #218838; }
+        button:disabled { background-color: #a0d3ac; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Welcome, Student!</h1>
-        <p>Please select your class and subject to view content.</p>
+        <p>Please make a selection to find your content.</p>
         <form id="filterForm">
             <div class="form-group">
                 <label for="classSelect">Class:</label>
                 <select id="classSelect" required>
                     <option value="">-- Select a Class --</option>
-                    <option value="6">Class 6</option>
-                    <option value="7">Class 7</option>
-                    <option value="8">Class 8</option>
-                    <option value="9">Class 9</option>
-                    <option value="10">Class 10</option>
-                    <option value="11 JEE">Class 11 JEE</option>
-                    <option value="11 NEET">Class 11 NEET</option>
-                    <option value="12 JEE">Class 12 JEE</option>
-                    <option value="12 NEET">Class 12 NEET</option>
+                    <option value="6">Class 6</option> <option value="7">Class 7</option> <option value="8">Class 8</option>
+                    <option value="9">Class 9</option> <option value="10">Class 10</option> <option value="11 JEE">Class 11 JEE</option>
+                    <option value="11 NEET">Class 11 NEET</option> <option value="12 JEE">Class 12 JEE</option> <option value="12 NEET">Class 12 NEET</option>
                 </select>
             </div>
             <div class="form-group">
@@ -95,69 +38,119 @@
                     <option value="">-- First, Select a Class --</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="chapterSelect">Chapter:</label>
+                <select id="chapterSelect" required disabled>
+                    <option value="">-- First, Select a Subject --</option>
+                </select>
+            </div>
             <button id="viewContentBtn" type="submit" disabled>View Content</button>
         </form>
     </div>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyALyD306KRV3o4BF6JddkvESPRroU7ljDE",
+          authDomain: "study-books-45192.firebaseapp.com",
+          projectId: "study-books-45192",
+          storageBucket: "study-books-45192.firebasestorage.app",
+          messagingSenderId: "339305499523",
+          appId: "1:339305499523:web:c51eaccbdaebe1293004b6",
+          measurementId: "G-MZWBP5RR9Z"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         const classSelect = document.getElementById('classSelect');
         const subjectSelect = document.getElementById('subjectSelect');
+        const chapterSelect = document.getElementById('chapterSelect');
         const viewContentBtn = document.getElementById('viewContentBtn');
         const filterForm = document.getElementById('filterForm');
 
         const subjectsByClass = {
-            '6': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
-            '7': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
-            '8': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
-            '9': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
-            '10': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
-            '11 JEE': ['PHYSICS', 'CHEM', 'MATH'],
-            '11 NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY'],
-            '12 JEE': ['PHYSICS', 'CHEM', 'MATH'],
-            '12 NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY'],
+            '6': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'], '7': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '8': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'], '9': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'],
+            '10': ['ENG', 'MATH', 'BIO', 'PHY', 'CHEM', 'SST'], '11 JEE': ['PHYSICS', 'CHEM', 'MATH'],
+            '11 NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY'], '12 JEE': ['PHYSICS', 'CHEM', 'MATH'], '12 NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY'],
         };
         
         classSelect.addEventListener('change', () => {
             const selectedClass = classSelect.value;
             subjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>';
+            chapterSelect.innerHTML = '<option value="">-- First, Select a Subject --</option>';
+            subjectSelect.disabled = true;
+            chapterSelect.disabled = true;
             viewContentBtn.disabled = true;
 
             if (selectedClass && subjectsByClass[selectedClass]) {
-                const subjects = subjectsByClass[selectedClass];
-                subjects.forEach(subject => {
-                    const option = document.createElement('option');
-                    option.value = subject;
-                    option.textContent = subject;
-                    subjectSelect.appendChild(option);
+                subjectsByClass[selectedClass].forEach(subject => {
+                    subjectSelect.add(new Option(subject, subject));
                 });
                 subjectSelect.disabled = false;
-            } else {
-                subjectSelect.disabled = true;
             }
         });
 
-        subjectSelect.addEventListener('change', () => {
-            if (subjectSelect.value) {
-                viewContentBtn.disabled = false;
-            } else {
-                viewContentBtn.disabled = true;
+        subjectSelect.addEventListener('change', async () => {
+            const selectedClass = classSelect.value;
+            const selectedSubject = subjectSelect.value;
+            chapterSelect.innerHTML = '<option value="">-- Loading Chapters... --</option>';
+            chapterSelect.disabled = true;
+            viewContentBtn.disabled = true;
+
+            if (!selectedSubject) {
+                chapterSelect.innerHTML = '<option value="">-- First, Select a Subject --</option>';
+                return;
             }
+
+            try {
+                const querySnapshot = await db.collection('content')
+                    .where('class', '==', selectedClass)
+                    .where('subject', '==', selectedSubject)
+                    .get();
+
+                const existingChapters = new Set();
+                querySnapshot.forEach(doc => {
+                    existingChapters.add(doc.data().chapter);
+                });
+
+                chapterSelect.innerHTML = '<option value="">-- Select a Chapter --</option>';
+                if (existingChapters.size === 0) {
+                    chapterSelect.innerHTML = '<option value="">-- No Chapters Found --</option>';
+                } else {
+                    existingChapters.forEach(chapterName => {
+                        chapterSelect.add(new Option(chapterName, chapterName));
+                    });
+                    chapterSelect.disabled = false;
+                }
+            } catch (error) {
+                console.error("Error fetching chapters: ", error);
+                chapterSelect.innerHTML = '<option value="">-- Error Loading --</option>';
+            }
+        });
+        
+        chapterSelect.addEventListener('change', () => {
+            viewContentBtn.disabled = !chapterSelect.value;
         });
 
         filterForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const selectedClass = classSelect.value;
             const selectedSubject = subjectSelect.value;
+            const selectedChapter = chapterSelect.value;
 
-            if (selectedClass && selectedSubject) {
-                // Encode the parameters to be safe in a URL
+            if (selectedClass && selectedSubject && selectedChapter) {
                 const classParam = encodeURIComponent(selectedClass);
                 const subjectParam = encodeURIComponent(selectedSubject);
-                // Redirect to the content viewer page with query parameters
-                window.location.href = `3.html?class=${classParam}&subject=${subjectParam}`;
+                const chapterParam = encodeURIComponent(selectedChapter);
+
+                window.location.href = `3.html?class=${classParam}&subject=${subjectParam}&chapter=${chapterParam}`;
             }
         });
     </script>
-
 </body>
 </html>
