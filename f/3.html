@@ -5,99 +5,239 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flashcards</title>
     <style>
-        /* Shared Styles */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
+        :root {
+            --orange: #f9a825;
+            --green: #2e7d32;
+            --blue: #0277bd;
+            --card-bg: #ffffff;
+            --page-bg: #f0f4f8;
+            --text-dark: #263238;
+            --text-light: #546e7a;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        html, body {
+            height: 100%;
             margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        .flashcard-page {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .header-info h1 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+
+        .header-info p {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin: 4px 0 0;
+        }
+
+        .close-btn {
             display: flex;
             justify-content: center;
-        }
-        .container {
+            align-items: center;
+            width: 40px;
+            height: 40px;
             background-color: #fff;
-            padding: 20px 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
+            border-radius: 50%;
+            text-decoration: none;
+            font-size: 24px;
+            color: var(--text-light);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
         }
-        h1 {
-            color: #1c1e21;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
+
+        .close-btn:hover {
+            transform: scale(1.1);
         }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-        button:hover { background-color: #0056b3; }
-        
-        /* Flashcard Specific Styles */
-        .flashcard-container {
+
+        .card-area {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
             perspective: 1000px;
-            width: 100%;
-            height: 300px;
-            margin-top: 20px;
         }
+
+        .flashcard-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 80%;
+            max-height: 500px;
+        }
+
         .flashcard {
+            position: absolute;
             width: 100%;
             height: 100%;
-            position: relative;
             transform-style: preserve-3d;
-            transition: transform 0.6s;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
         }
-        .flashcard.is-flipped { transform: rotateY(180deg); }
+        
+        /* Stacked card effect */
+        .flashcard::before, .flashcard::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            z-index: -1;
+        }
+        .flashcard::before {
+            transform: rotate(-4deg);
+        }
+        .flashcard::after {
+            transform: rotate(4deg);
+        }
+
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+
         .card-face {
             position: absolute;
             width: 100%;
             height: 100%;
             backface-visibility: hidden;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
-            padding: 20px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 8px;
             text-align: center;
         }
-        .card-face-front { background-color: #e9f5ff; }
-        .card-face-back { background-color: #fffbe9; transform: rotateY(180deg); }
-        .button-group { display: flex; justify-content: space-around; margin-top: 20px; }
-        .button-group button { width: 48%; }
-        #btn-known { background-color: #28a745; }
-        #btn-known:hover { background-color: #218838; }
-        #btn-learning { background-color: #dc3545; }
-        #btn-learning:hover { background-color: #c82333; }
+
+        .card-face-front #card-question {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: auto;
+        }
+
+        #hint-area {
+            margin-top: auto;
+            padding-top: 20px;
+        }
+
+        #show-hint-btn {
+            color: var(--blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        #hint-text {
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        .card-face-back {
+            transform: rotateY(180deg);
+        }
+
+        #card-answer {
+            font-size: 1.5rem;
+        }
+
+        .page-footer {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px 20px 40px 20px;
+            flex-shrink: 0;
+        }
+
+        .page-footer button {
+            padding: 15px 0;
+            width: 45%;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid;
+            background-color: #fff;
+            transition: all 0.2s;
+        }
+        
+        .page-footer button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        #btn-learning {
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        #btn-known {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 id="chapterTitle">Flashcards</h1>
-        <p id="progress-text">Card 0 / 0</p>
-        
-        <div class="flashcard-container">
-            <div class="flashcard" id="flashcard">
-                <div class="card-face card-face-front" id="card-question">Loading question...</div>
-                <div class="card-face card-face-back" id="card-answer">Loading answer...</div>
-            </div>
-        </div>
 
-        <div class="button-group">
-            <button id="btn-learning">Still Learning</button>
-            <button id="btn-known">I Know It</button>
-        </div>
+    <div class="flashcard-page">
+        <header class="page-header">
+            <div class="header-info">
+                <h1 id="chapterTitle">Loading...</h1>
+                <p id="progress-text">Card 0 of 0</p>
+            </div>
+            <a href="javascript:history.back()" class="close-btn">×</a>
+        </header>
+
+        <main class="card-area">
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="card-face card-face-front">
+                        <p id="card-question">Loading question...</p>
+                        <div id="hint-area" class="hidden">
+                            <a href="#" id="show-hint-btn">SHOW A HINT</a>
+                            <p id="hint-text" class="hidden"></p>
+                        </div>
+                    </div>
+                    <div class="card-face card-face-back">
+                        <p id="card-answer">Loading answer...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="page-footer">
+            <button id="btn-learning">Still learning</button>
+            <button id="btn-known">I know this</button>
+        </footer>
     </div>
 
     <script type="module">
@@ -128,6 +268,9 @@
         const progressText = document.getElementById('progress-text');
         const btnKnown = document.getElementById('btn-known');
         const btnLearning = document.getElementById('btn-learning');
+        const hintArea = document.getElementById('hint-area');
+        const showHintBtn = document.getElementById('show-hint-btn');
+        const hintText = document.getElementById('hint-text');
 
         let cards = [];
         let currentCardIndex = 0;
@@ -147,9 +290,9 @@
 
             if (docSnap.exists()) {
                 const chapterData = docSnap.data();
-                cards = chapterData.cards;
+                cards = chapterData.cards || [];
                 chapterTitleEl.textContent = chapterData.chapterName;
-                if (cards && cards.length > 0) {
+                if (cards.length > 0) {
                     displayCard();
                 } else {
                     document.body.innerHTML = '<h1>This chapter has no cards.</h1>';
@@ -161,18 +304,40 @@
 
         function displayCard() {
             flashcard.classList.remove('is-flipped');
+            
+            // Allow flip animation to complete before changing content
             setTimeout(() => {
                 const card = cards[currentCardIndex];
                 cardQuestion.textContent = card.question;
                 cardAnswer.textContent = card.answer;
-                progressText.textContent = `Card ${currentCardIndex + 1} / ${cards.length}`;
-            }, 150);
+                progressText.textContent = `Card ${currentCardIndex + 1} of ${cards.length}`;
+
+                // Handle hint visibility
+                if (card.hint && card.hint.trim() !== '') {
+                    hintArea.classList.remove('hidden');
+                    hintText.textContent = card.hint;
+                    hintText.classList.add('hidden'); // Hide hint text initially
+                    showHintBtn.classList.remove('hidden'); // Show the hint button
+                } else {
+                    hintArea.classList.add('hidden');
+                }
+            }, 300); 
         }
 
+        // Flip card on click
         flashcard.addEventListener('click', () => {
             flashcard.classList.toggle('is-flipped');
         });
 
+        // Show hint on click
+        showHintBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent card from flipping when clicking the hint
+            hintText.classList.remove('hidden');
+            showHintBtn.classList.add('hidden');
+        });
+
+        // Handle user choice
         btnKnown.addEventListener('click', () => handleChoice('known'));
         btnLearning.addEventListener('click', () => handleChoice('learning'));
 
@@ -188,5 +353,6 @@
             }
         }
     </script>
+
 </body>
 </html>
