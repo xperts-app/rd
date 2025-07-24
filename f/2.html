@@ -1,0 +1,64 @@
+<!-- 2.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select a Chapter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="page-title">Chapters</h1>
+        <div id="chapter-list">
+            <p>Loading chapters...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        window.onload = async () => {
+            const chapterList = document.getElementById('chapter-list');
+            const pageTitle = document.getElementById('page-title');
+
+            // Get class and subject from URL parameters
+            const params = new URLSearchParams(window.location.search);
+            const className = params.get('class');
+            const subjectName = params.get('subject')?.toUpperCase();
+
+            if (!className || !subjectName) {
+                chapterList.innerHTML = `<p>Error: Please specify class and subject in the URL. <br>Example: ?class=10&subject=BIO</p>`;
+                return;
+            }
+
+            pageTitle.textContent = `Class ${className} - ${subjectName} Chapters`;
+
+            // Query Firestore
+            const q = query(collection(db, "chapters"), where("class", "==", className), where("subject", "==", subjectName));
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                chapterList.innerHTML = ''; // Clear loading message
+
+                if (querySnapshot.empty) {
+                    chapterList.innerHTML = '<p>No chapters found for this class and subject.</p>';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const chapter = doc.data();
+                        const link = document.createElement('a');
+                        link.href = `3.html?chapterId=${doc.id}`;
+                        link.textContent = chapter.chapterName;
+                        link.classList.add('chapter-link');
+                        chapterList.appendChild(link);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching chapters: ", error);
+                chapterList.innerHTML = `<p>Error fetching chapters. You might need to create a Firestore index. Check the browser's developer console for a link to create it.</p>`;
+            }
+        };
+    </script>
+</body>
+</html>
