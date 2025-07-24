@@ -276,6 +276,12 @@
         let currentCardIndex = 0;
         let results = [];
 
+        // Helper function to clean text from stray <br> tags
+        function cleanText(text) {
+            if (typeof text !== 'string') return '';
+            return text.replace(/<br>/g, '').trim();
+        }
+
         window.onload = async () => {
             const params = new URLSearchParams(window.location.search);
             const chapterId = params.get('chapterId');
@@ -305,39 +311,40 @@
         function displayCard() {
             flashcard.classList.remove('is-flipped');
             
-            // Allow flip animation to complete before changing content
             setTimeout(() => {
                 const card = cards[currentCardIndex];
-                cardQuestion.textContent = card.question;
-                cardAnswer.textContent = card.answer;
+                
+                // --- FIX APPLIED HERE ---
+                // Use the helper function to clean data before displaying it
+                cardQuestion.textContent = cleanText(card.question);
+                cardAnswer.textContent = cleanText(card.answer);
+                
                 progressText.textContent = `Card ${currentCardIndex + 1} of ${cards.length}`;
 
                 // Handle hint visibility
-                if (card.hint && card.hint.trim() !== '') {
+                const cleanHint = cleanText(card.hint);
+                if (cleanHint) {
                     hintArea.classList.remove('hidden');
-                    hintText.textContent = card.hint;
-                    hintText.classList.add('hidden'); // Hide hint text initially
-                    showHintBtn.classList.remove('hidden'); // Show the hint button
+                    hintText.textContent = cleanHint;
+                    hintText.classList.add('hidden');
+                    showHintBtn.classList.remove('hidden');
                 } else {
                     hintArea.classList.add('hidden');
                 }
             }, 300); 
         }
 
-        // Flip card on click
         flashcard.addEventListener('click', () => {
             flashcard.classList.toggle('is-flipped');
         });
 
-        // Show hint on click
         showHintBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            e.stopPropagation(); // Prevent card from flipping when clicking the hint
+            e.stopPropagation(); 
             hintText.classList.remove('hidden');
             showHintBtn.classList.add('hidden');
         });
 
-        // Handle user choice
         btnKnown.addEventListener('click', () => handleChoice('known'));
         btnLearning.addEventListener('click', () => handleChoice('learning'));
 
