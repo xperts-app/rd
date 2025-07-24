@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Chapter Management</title>
+    <style>
+        /* Base Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            color: #1c1e21;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        /* Chapter Grouping Styles */
+        .class-group {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .class-group h2 {
+            margin-top: 0;
+            border-bottom: none;
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .subject-group h3 {
+            margin-top: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .chapter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background-color: #f9f9f9;
+        }
+        .chapter-item-name {
+            font-weight: 600;
+        }
+        .chapter-item-buttons button {
+            margin-left: 10px;
+            padding: 6px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+        .edit-btn { background-color: #ffc107; color: #333; }
+        .edit-btn:hover { background-color: #e0a800; }
+        .delete-btn { background-color: #dc3545; }
+        .delete-btn:hover { background-color: #c82333; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-content label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal-buttons {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .modal-buttons button {
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        #save-changes-btn { background-color: #28a745; color: white; }
+        #cancel-btn { background-color: #6c757d; color: white; }
+        
+        #modal-card-list li {
+            background: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 5px;
+            list-style-type: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #modal-card-list .card-text { flex-grow: 1; }
+        #modal-card-list .delete-card-btn {
+             background-color: #dc3545; color: white;
+             border:none; padding: 4px 8px; cursor: pointer; border-radius: 3px; font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chapter Management</h1>
+        <p><a href="1.html">Go to Add Chapters Page →</a></p>
+        <div id="chapter-management-container">
+            <p>Loading chapters...</p>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <h2>Edit Chapter</h2>
+            <form id="editForm">
+                <label for="editChapterName">Chapter Name</label>
+                <input type="text" id="editChapterName" required>
+
+                <h3>Cards in this Chapter</h3>
+                <ul id="modal-card-list"></ul>
+                
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-btn">Cancel</button>
+                    <button type="submit" id="save-changes-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4Fc3IhMFVz4v6mKc4tcc_yjaEIw4fbo4",
+            authDomain: "xperts-flashcards.firebaseapp.com",
+            projectId: "xperts-flashcards",
+            storageBucket: "xperts-flashcards.appspot.com",
+            messagingSenderId: "398115589486",
+            appId: "1:398115589486:web:3c513f5624686edd36c57f",
+            measurementId: "G-RYEDY563LR"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- Start of Application Logic ---
+        const container = document.getElementById('chapter-management-container');
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        const cancelBtn = document.getElementById('cancel-btn');
+        let currentEditingChapterId = null;
+
+        // Fetch and display all chapters on page load
+        window.onload = async () => {
+            container.innerHTML = '<p>Loading chapters...</p>';
+            
+            // Query all chapters, ordering them for a structured display
+            const q = query(collection(db, "chapters"), orderBy("class"), orderBy("subject"));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                container.innerHTML = '<p>No chapters found in the database.</p>';
+                return;
+            }
+
+            const groupedData = {};
+            querySnapshot.forEach(doc => {
+                const chapter = { id: doc.id, ...doc.data() };
+                const { class: className, subject } = chapter;
+
+                if (!groupedData[className]) {
+                    groupedData[className] = {};
+                }
+                if (!groupedData[className][subject]) {
+                    groupedData[className][subject] = [];
+                }
+                groupedData[className][subject].push(chapter);
+            });
+            
+            renderChapters(groupedData);
+        };
+        
+        // Render the grouped data into HTML
+        function renderChapters(data) {
+            container.innerHTML = '';
+            for (const className in data) {
+                const classGroupDiv = document.createElement('div');
+                classGroupDiv.className = 'class-group';
+                classGroupDiv.innerHTML = `<h2>Class: ${className}</h2>`;
+
+                for (const subject in data[className]) {
+                    const subjectGroupDiv = document.createElement('div');
+                    subjectGroupDiv.className = 'subject-group';
+                    subjectGroupDiv.innerHTML = `<h3>Subject: ${subject}</h3>`;
+
+                    data[className][subject].forEach(chapter => {
+                        const chapterItem = document.createElement('div');
+                        chapterItem.className = 'chapter-item';
+                        chapterItem.dataset.id = chapter.id; // Keep track of the item in the DOM
+                        
+                        chapterItem.innerHTML = `
+                            <span class="chapter-item-name">${chapter.chapterName}</span>
+                            <div class="chapter-item-buttons">
+                                <button class="edit-btn" data-id="${chapter.id}">Edit</button>
+                                <button class="delete-btn" data-id="${chapter.id}">Delete</button>
+                            </div>
+                        `;
+                        subjectGroupDiv.appendChild(chapterItem);
+                    });
+                    classGroupDiv.appendChild(subjectGroupDiv);
+                }
+                container.appendChild(classGroupDiv);
+            }
+        }
+
+        // Use event delegation for edit and delete buttons
+        container.addEventListener('click', async (e) => {
+            const target = e.target;
+            const chapterId = target.dataset.id;
+
+            // Handle Delete
+            if (target.classList.contains('delete-btn')) {
+                const chapterName = target.closest('.chapter-item').querySelector('.chapter-item-name').textContent;
+                if (confirm(`Are you sure you want to delete the chapter "${chapterName}"? This action cannot be undone.`)) {
+                    await deleteChapter(chapterId, target.closest('.chapter-item'));
+                }
+            }
+
+            // Handle Edit
+            if (target.classList.contains('edit-btn')) {
+                openEditModal(chapterId);
+            }
+        });
+
+        async function deleteChapter(id, element) {
+            try {
+                await deleteDoc(doc(db, "chapters", id));
+                element.remove(); // Remove from the DOM for instant feedback
+                alert('Chapter deleted successfully.');
+            } catch (error) {
+                console.error("Error deleting chapter: ", error);
+                alert('Failed to delete chapter. Check console for details.');
+            }
+        }
+
+        async function openEditModal(id) {
+            currentEditingChapterId = id;
+            const docRef = doc(db, "chapters", id);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const chapter = docSnap.data();
+                document.getElementById('editChapterName').value = chapter.chapterName;
+                
+                const cardList = document.getElementById('modal-card-list');
+                cardList.innerHTML = '';
+                if (chapter.cards && chapter.cards.length > 0) {
+                    chapter.cards.forEach((card, index) => {
+                        const li = document.createElement('li');
+                        li.dataset.index = index;
+                        li.innerHTML = `
+                           <div class="card-text">
+                                <strong>Q:</strong> ${card.question}<br>
+                                <strong>A:</strong> ${card.answer}
+                           </div>
+                           <button type="button" class="delete-card-btn">Delete</button>
+                        `;
+                        cardList.appendChild(li);
+                    });
+                } else {
+                    cardList.innerHTML = '<li>No cards in this chapter.</li>';
+                }
+
+                editModal.style.display = 'flex';
+            }
+        }
+
+        // Handle card deletion within the modal
+        document.getElementById('modal-card-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-card-btn')) {
+                // Just remove from view. The actual deletion happens on save.
+                e.target.closest('li').remove();
+            }
+        });
+
+        // Handle saving changes from the modal
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newName = document.getElementById('editChapterName').value.trim();
+            if (!newName) {
+                alert('Chapter name cannot be empty.');
+                return;
+            }
+
+            // Collect the remaining cards from the modal list
+            const remainingCardElements = document.querySelectorAll('#modal-card-list li');
+            const updatedCards = [];
+            remainingCardElements.forEach(li => {
+                const text = li.querySelector('.card-text').innerHTML;
+                const question = text.split('<strong>A:</strong>')[0].replace('<strong>Q:</strong>', '').trim();
+                const answer = text.split('<strong>A:</strong>')[1].trim();
+                updatedCards.push({ question, answer });
+            });
+
+            try {
+                const chapterRef = doc(db, "chapters", currentEditingChapterId);
+                await updateDoc(chapterRef, {
+                    chapterName: newName,
+                    cards: updatedCards
+                });
+                
+                // Update the name in the main list without a full reload
+                const chapterItemInDOM = container.querySelector(`.chapter-item[data-id="${currentEditingChapterId}"] .chapter-item-name`);
+                if (chapterItemInDOM) {
+                    chapterItemInDOM.textContent = newName;
+                }
+                
+                closeModal();
+                alert('Chapter updated successfully!');
+            } catch (error) {
+                console.error("Error updating chapter: ", error);
+                alert('Failed to update chapter. Check console for details.');
+            }
+        });
+
+        function closeModal() {
+            editModal.style.display = 'none';
+            currentEditingChapterId = null;
+        }
+
+        cancelBtn.addEventListener('click', closeModal);
+    </script>
+</body>
+</html>
