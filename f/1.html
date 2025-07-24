@@ -1,0 +1,204 @@
+<!-- 1.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Add Flashcards</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        
+        <form id="adminForm">
+            <!-- Step 1: Define Class and Subject -->
+            <label for="classInput">Class (e.g., 10, 12)</label>
+            <input type="text" id="classInput" required>
+            
+            <label for="subjectInput">Subject (e.g., BIO, PHY)</label>
+            <input type="text" id="subjectInput" required>
+
+            <!-- Step 2: Choose Chapter -->
+            <div>
+                <input type="radio" id="newChapterRadio" name="chapterChoice" value="new" checked>
+                <label for="newChapterRadio">Create New Chapter</label>
+                <input type="radio" id="existingChapterRadio" name="chapterChoice" value="existing">
+                <label for="existingChapterRadio">Add to Existing Chapter</label>
+            </div>
+
+            <div id="newChapterContainer">
+                <label for="newChapterInput">New Chapter Name</label>
+                <input type="text" id="newChapterInput">
+            </div>
+
+            <div id="existingChapterContainer" class="hidden">
+                <label for="existingChapterSelect">Select Existing Chapter</label>
+                <select id="existingChapterSelect"></select>
+            </div>
+
+            <!-- Step 3: Add Flashcards -->
+            <hr style="margin: 20px 0;">
+            <h2>Add Cards</h2>
+            <div id="card-adder">
+                <label for="question">Question</label>
+                <textarea id="question" rows="3"></textarea>
+                <label for="answer">Answer</label>
+                <textarea id="answer" rows="3"></textarea>
+                <button type="button" id="addCardBtn">Add Card to List</button>
+            </div>
+
+            <h3>Cards to be Added:</h3>
+            <ol id="card-list"></ol>
+            
+            <button type="submit" id="saveBtn">Save to Firebase</button>
+        </form>
+        <p id="status"></p>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { collection, addDoc, getDocs, query, where, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const classInput = document.getElementById('classInput');
+        const subjectInput = document.getElementById('subjectInput');
+        const newChapterRadio = document.getElementById('newChapterRadio');
+        const existingChapterRadio = document.getElementById('existingChapterRadio');
+        const newChapterContainer = document.getElementById('newChapterContainer');
+        const existingChapterContainer = document.getElementById('existingChapterContainer');
+        const existingChapterSelect = document.getElementById('existingChapterSelect');
+        const addCardBtn = document.getElementById('addCardBtn');
+        const adminForm = document.getElementById('adminForm');
+        const statusEl = document.getElementById('status');
+        
+        let cardsToAdd = [];
+
+        // Toggle chapter input fields
+        newChapterRadio.addEventListener('change', () => {
+            newChapterContainer.classList.remove('hidden');
+            existingChapterContainer.classList.add('hidden');
+        });
+        existingChapterRadio.addEventListener('change', () => {
+            newChapterContainer.classList.add('hidden');
+            existingChapterContainer.classList.remove('hidden');
+            loadExistingChapters();
+        });
+
+        // Load existing chapters when class/subject changes
+        classInput.addEventListener('blur', loadExistingChapters);
+        subjectInput.addEventListener('blur', loadExistingChapters);
+
+        async function loadExistingChapters() {
+            const className = classInput.value.trim();
+            const subjectName = subjectInput.value.trim().toUpperCase();
+            if (!className || !subjectName) return;
+
+            existingChapterSelect.innerHTML = '<option>Loading...</option>';
+            const q = query(collection(db, "chapters"), where("class", "==", className), where("subject", "==", subjectName));
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                existingChapterSelect.innerHTML = '';
+                if (querySnapshot.empty) {
+                    existingChapterSelect.innerHTML = '<option>No chapters found</option>';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.textContent = doc.data().chapterName;
+                        existingChapterSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading chapters: ", error);
+                statusEl.textContent = "Error loading chapters. Check console.";
+            }
+        }
+
+        // Add card to temporary list
+        addCardBtn.addEventListener('click', () => {
+            const question = document.getElementById('question').value.trim();
+            const answer = document.getElementById('answer').value.trim();
+
+            if (question && answer) {
+                cardsToAdd.push({ question, answer });
+                updateCardListView();
+                document.getElementById('question').value = '';
+                document.getElementById('answer').value = '';
+            } else {
+                alert('Please fill in both question and answer.');
+            }
+        });
+
+        function updateCardListView() {
+            const cardList = document.getElementById('card-list');
+            cardList.innerHTML = '';
+            cardsToAdd.forEach((card, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. Q: ${card.question}`;
+                cardList.appendChild(li);
+            });
+        }
+        
+        // Save everything to Firebase
+        adminForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            statusEl.textContent = 'Saving...';
+
+            if (cardsToAdd.length === 0) {
+                alert('Please add at least one card.');
+                statusEl.textContent = '';
+                return;
+            }
+
+            const className = classInput.value.trim();
+            const subjectName = subjectInput.value.trim().toUpperCase();
+
+            try {
+                if (newChapterRadio.checked) {
+                    // Create new chapter
+                    const chapterName = document.getElementById('newChapterInput').value.trim();
+                    if (!chapterName) {
+                        alert('Please provide a new chapter name.');
+                        statusEl.textContent = '';
+                        return;
+                    }
+                    await addDoc(collection(db, "chapters"), {
+                        class: className,
+                        subject: subjectName,
+                        chapterName: chapterName,
+                        cards: cardsToAdd
+                    });
+                    statusEl.textContent = 'Successfully created new chapter and added cards!';
+
+                } else {
+                    // Add to existing chapter
+                    const chapterId = existingChapterSelect.value;
+                    if (!chapterId || existingChapterSelect.firstElementChild.textContent.includes('No chapters')) {
+                        alert('Please select a valid existing chapter.');
+                        statusEl.textContent = '';
+                        return;
+                    }
+                    const chapterRef = doc(db, "chapters", chapterId);
+                    await updateDoc(chapterRef, {
+                        cards: arrayUnion(...cardsToAdd)
+                    });
+                    statusEl.textContent = `Successfully added ${cardsToAdd.length} cards to the chapter!`;
+                }
+
+                // Reset form
+                cardsToAdd = [];
+                updateCardListView();
+                adminForm.reset();
+                newChapterContainer.classList.remove('hidden');
+                existingChapterContainer.classList.add('hidden');
+                setTimeout(() => statusEl.textContent = '', 5000);
+
+            } catch (error) {
+                console.error("Error saving to Firebase: ", error);
+                statusEl.textContent = 'Error saving. Please check the console.';
+            }
+        });
+    </script>
+</body>
+</html>
