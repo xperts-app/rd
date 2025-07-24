@@ -1,1 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Custom YouTube Player</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      font-family: Arial, sans-serif;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
 
+    .player-wrapper {
+      position: relative;
+      width: 90%;
+      max-width: 800px;
+      aspect-ratio: 16 / 9;
+      background: black;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #player {
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      width: 30px;
+      height: 30px;
+      background-color: #007BFF;
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      cursor: pointer;
+    }
+
+    .play {
+      mask-image: url('https://img.icons8.com/ios-filled/50/play--v1.png');
+      -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/play--v1.png');
+    }
+
+    .pause {
+      mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png');
+      -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png');
+    }
+
+    .progress {
+      flex: 1;
+      height: 6px;
+      background: #444;
+      border-radius: 3px;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .progress-filled {
+      width: 0%;
+      height: 100%;
+      background: #007BFF;
+      transition: width 0.1s linear;
+    }
+
+    .tap-area {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 50%;
+      z-index: 5;
+    }
+
+    .tap-left { left: 0; }
+    .tap-right { right: 0; }
+  </style>
+</head>
+<body>
+  <div class="player-wrapper" id="video-container">
+    <div id="player"></div>
+
+    <!-- Double Tap Fullscreen -->
+    <div class="tap-area tap-left" ondblclick="toggleFullScreen()"></div>
+    <div class="tap-area tap-right" ondblclick="toggleFullScreen()"></div>
+
+    <div class="controls">
+      <div class="btn play" id="playPauseBtn"></div>
+      <div class="progress" id="progressBar">
+        <div class="progress-filled" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let player;
+    let isPlaying = false;
+    let hasUnmuted = false;
+
+    // Load YouTube API
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
+
+    function getVideoIdFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get("url");
+      if (!url) return "_qgT0bv-juc"; // default
+      try {
+        const yt = new URL(url);
+        if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
+        if (yt.hostname === "youtu.be") return yt.pathname.slice(1);
+      } catch {
+        return "_qgT0bv-juc";
+      }
+    }
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        videoId: getVideoIdFromURL(),
+        playerVars: {
+          modestbranding: 1,
+          rel: 0,
+          autoplay: 1,
+          mute: 1,
+          controls: 0
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerReady() {
+      const btn = document.getElementById('playPauseBtn');
+      const progressBar = document.getElementById('progressBar');
+      const progressFill = document.getElementById('progressFill');
+
+      // Button click to toggle play/pause
+      btn.addEventListener('click', () => {
+        if (isPlaying) {
+          player.pauseVideo();
+        } else {
+          player.playVideo();
+        }
+      });
+
+      // Seek bar click
+      progressBar.addEventListener('click', (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        player.seekTo(player.getDuration() * percent, true);
+      });
+
+      // Progress bar update
+      setInterval(() => {
+        if (player && player.getDuration) {
+          const progress = (player.getCurrentTime() / player.getDuration()) * 100;
+          progressFill.style.width = progress + "%";
+        }
+      }, 500);
+    }
+
+    function onPlayerStateChange(event) {
+      const btn = document.getElementById('playPauseBtn');
+
+      if (event.data === YT.PlayerState.PLAYING) {
+        isPlaying = true;
+        btn.classList.remove('play');
+        btn.classList.add('pause');
+
+        // Unmute safely after confirmed playing
+        if (!hasUnmuted) {
+          hasUnmuted = true;
+          setTimeout(() => player.unMute(), 1500); // delay to avoid autoplay block
+        }
+
+      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+        isPlaying = false;
+        btn.classList.remove('pause');
+        btn.classList.add('play');
+      }
+    }
+
+    function toggleFullScreen() {
+      const elem = document.getElementById("video-container");
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => {
+          alert(`Error entering fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  </script>
+</body>
+</html>
+no I
