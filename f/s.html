@@ -79,17 +79,16 @@
             const chapterList = document.getElementById('chapter-list');
             const pageTitle = document.getElementById('page-title');
 
-            // Get class and subject from URL parameters
             const params = new URLSearchParams(window.location.search);
             const className = params.get('class');
-            const subjectName = params.get('subject')?.toUpperCase();
+            const subjectName = params.get('subject'); // No need for toUpperCase as it's from a controlled select
 
             if (!className || !subjectName) {
-                chapterList.innerHTML = `<p>Error: Please specify class and subject in the URL. <br>Example: <b>?class=10&subject=BIO</b></p>`;
+                chapterList.innerHTML = `<p>Error: Please specify class and subject in the URL. <br><br>Examples: <br><b>?class=10&subject=BIO</b><br><b>?class=12%20NEET&subject=ZOOLOGY</b></p>`;
                 return;
             }
 
-            pageTitle.textContent = `Class ${className} - ${subjectName} Chapters`;
+            pageTitle.textContent = `${className} - ${subjectName} Chapters`;
 
             // Query Firestore for matching chapters
             const q = query(collection(db, "chapters"), where("class", "==", className), where("subject", "==", subjectName));
@@ -104,7 +103,6 @@
                     querySnapshot.forEach((doc) => {
                         const chapter = doc.data();
                         const link = document.createElement('a');
-                        // Pass the unique chapter ID to the flashcard page
                         link.href = `3.html?chapterId=${doc.id}`;
                         link.textContent = chapter.chapterName;
                         link.classList.add('chapter-link');
@@ -113,6 +111,8 @@
                 }
             } catch (error) {
                 console.error("Error fetching chapters: ", error);
+                // **IMPORTANT**: You will see this error the first time you run this query.
+                // Check the browser's developer console for a link from Firebase to create the required index. Click it.
                 chapterList.innerHTML = `<p>Error fetching chapters. You might need to create a Firestore index. Check the browser's developer console for a link to create it.</p>`;
             }
         };
