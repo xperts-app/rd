@@ -34,12 +34,17 @@
             margin-bottom: 5px;
             font-weight: 600;
         }
-        input[type="text"], select, textarea {
+        select, textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
+            background-color: #fff; /* Ensure select has a background */
+        }
+        select:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
         }
         button {
             background-color: #007bff;
@@ -63,12 +68,25 @@
         <h1>Admin Panel</h1>
         
         <form id="adminForm">
-            <!-- Step 1: Define Class and Subject -->
-            <label for="classInput">Class (e.g., 10, 12)</label>
-            <input type="text" id="classInput" required>
+            <!-- Step 1: Select Class and Subject -->
+            <label for="classSelect">Class</label>
+            <select id="classSelect" required>
+                <option value="">-- Select a Class --</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11 JEE">11 JEE</option>
+                <option value="11 NEET">11 NEET</option>
+                <option value="12 JEE">12 JEE</option>
+                <option value="12 NEET">12 NEET</option>
+            </select>
             
-            <label for="subjectInput">Subject (e.g., BIO, PHY)</label>
-            <input type="text" id="subjectInput" required>
+            <label for="subjectSelect">Subject</label>
+            <select id="subjectSelect" required disabled>
+                <option value="">-- Select a Class First --</option>
+            </select>
 
             <!-- Step 2: Choose Chapter -->
             <div>
@@ -80,7 +98,7 @@
 
             <div id="newChapterContainer">
                 <label for="newChapterInput">New Chapter Name</label>
-                <input type="text" id="newChapterInput">
+                <textarea id="newChapterInput" rows="1"></textarea>
             </div>
 
             <div id="existingChapterContainer" class="hidden">
@@ -128,8 +146,44 @@
         const db = getFirestore(app);
 
         // --- Start of Application Logic ---
-        const classInput = document.getElementById('classInput');
-        const subjectInput = document.getElementById('subjectInput');
+        const classSelect = document.getElementById('classSelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+        
+        const subjectMap = {
+            '6-10': ['ENGLISH', 'PHY', 'CHEM', 'MATH', 'BIO', 'SST'],
+            'JEE': ['PHY', 'CHEM', 'MATH'],
+            'NEET': ['PHY', 'CHEM', 'ZOOLOGY', 'BOTANY']
+        };
+
+        classSelect.addEventListener('change', () => {
+            const selectedClass = classSelect.value;
+            subjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>';
+            subjectSelect.disabled = true;
+
+            let subjectList = [];
+            if (['6', '7', '8', '9', '10'].includes(selectedClass)) {
+                subjectList = subjectMap['6-10'];
+            } else if (selectedClass.includes('JEE')) {
+                subjectList = subjectMap['JEE'];
+            } else if (selectedClass.includes('NEET')) {
+                subjectList = subjectMap['NEET'];
+            }
+
+            if (subjectList.length > 0) {
+                subjectList.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    subjectSelect.appendChild(option);
+                });
+                subjectSelect.disabled = false;
+            }
+            loadExistingChapters(); // Reload chapters when class changes
+        });
+        
+        subjectSelect.addEventListener('change', loadExistingChapters);
+
+        // --- Rest of the logic remains similar, but uses the new select elements ---
         const newChapterRadio = document.getElementById('newChapterRadio');
         const existingChapterRadio = document.getElementById('existingChapterRadio');
         const newChapterContainer = document.getElementById('newChapterContainer');
@@ -141,7 +195,6 @@
         
         let cardsToAdd = [];
 
-        // Toggle chapter input fields
         newChapterRadio.addEventListener('change', () => {
             newChapterContainer.classList.remove('hidden');
             existingChapterContainer.classList.add('hidden');
@@ -152,14 +205,13 @@
             loadExistingChapters();
         });
 
-        // Load existing chapters when class/subject changes
-        classInput.addEventListener('blur', loadExistingChapters);
-        subjectInput.addEventListener('blur', loadExistingChapters);
-
         async function loadExistingChapters() {
-            const className = classInput.value.trim();
-            const subjectName = subjectInput.value.trim().toUpperCase();
-            if (!className || !subjectName) return;
+            const className = classSelect.value;
+            const subjectName = subjectSelect.value;
+            if (!className || !subjectName) {
+                existingChapterSelect.innerHTML = '';
+                return;
+            };
 
             existingChapterSelect.innerHTML = '<option>Loading...</option>';
             const q = query(collection(db, "chapters"), where("class", "==", className), where("subject", "==", subjectName));
@@ -183,7 +235,6 @@
             }
         }
 
-        // Add card to temporary list
         addCardBtn.addEventListener('click', () => {
             const question = document.getElementById('question').value.trim();
             const answer = document.getElementById('answer').value.trim();
@@ -208,10 +259,18 @@
             });
         }
         
-        // Save everything to Firebase
         adminForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             statusEl.textContent = 'Saving...';
+            
+            const className = classSelect.value;
+            const subjectName = subjectSelect.value;
+
+            if (!className || !subjectName) {
+                alert('Please select a class and subject.');
+                statusEl.textContent = '';
+                return;
+            }
 
             if (cardsToAdd.length === 0) {
                 alert('Please add at least one card.');
@@ -219,12 +278,8 @@
                 return;
             }
 
-            const className = classInput.value.trim();
-            const subjectName = subjectInput.value.trim().toUpperCase();
-
             try {
                 if (newChapterRadio.checked) {
-                    // Create new chapter
                     const chapterName = document.getElementById('newChapterInput').value.trim();
                     if (!chapterName) {
                         alert('Please provide a new chapter name.');
@@ -238,9 +293,7 @@
                         cards: cardsToAdd
                     });
                     statusEl.textContent = 'Successfully created new chapter and added cards!';
-
                 } else {
-                    // Add to existing chapter
                     const chapterId = existingChapterSelect.value;
                     if (!chapterId || existingChapterSelect.firstElementChild.textContent.includes('No chapters')) {
                         alert('Please select a valid existing chapter.');
@@ -254,10 +307,11 @@
                     statusEl.textContent = `Successfully added ${cardsToAdd.length} cards to the chapter!`;
                 }
 
-                // Reset form
                 cardsToAdd = [];
                 updateCardListView();
                 adminForm.reset();
+                subjectSelect.innerHTML = '<option value="">-- Select a Class First --</option>';
+                subjectSelect.disabled = true;
                 newChapterContainer.classList.remove('hidden');
                 existingChapterContainer.classList.add('hidden');
                 setTimeout(() => statusEl.textContent = '', 5000);
