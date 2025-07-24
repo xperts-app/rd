@@ -1,0 +1,100 @@
+<!-- 3.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Flashcards</h1>
+        <p id="progress-text">Card 0 / 0</p>
+        
+        <div class="flashcard-container">
+            <div class="flashcard" id="flashcard">
+                <div class="card-face card-face-front" id="card-question">
+                    Loading question...
+                </div>
+                <div class="card-face card-face-back" id="card-answer">
+                    Loading answer...
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="btn-learning">Still Learning</button>
+            <button id="btn-known">I Know It</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const flashcard = document.getElementById('flashcard');
+        const cardQuestion = document.getElementById('card-question');
+        const cardAnswer = document.getElementById('card-answer');
+        const progressText = document.getElementById('progress-text');
+        const btnKnown = document.getElementById('btn-known');
+        const btnLearning = document.getElementById('btn-learning');
+
+        let cards = [];
+        let currentCardIndex = 0;
+        let results = [];
+
+        window.onload = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const chapterId = params.get('chapterId');
+
+            if (!chapterId) {
+                document.body.innerHTML = '<h1>Error: No chapter ID provided.</h1>';
+                return;
+            }
+
+            const docRef = doc(db, "chapters", chapterId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                cards = docSnap.data().cards;
+                if (cards && cards.length > 0) {
+                    displayCard();
+                } else {
+                    document.body.innerHTML = '<h1>This chapter has no cards.</h1>';
+                }
+            } else {
+                document.body.innerHTML = '<h1>Error: Chapter not found.</h1>';
+            }
+        };
+
+        function displayCard() {
+            flashcard.classList.remove('is-flipped');
+            const card = cards[currentCardIndex];
+            cardQuestion.textContent = card.question;
+            cardAnswer.textContent = card.answer;
+            progressText.textContent = `Card ${currentCardIndex + 1} / ${cards.length}`;
+        }
+
+        flashcard.addEventListener('click', () => {
+            flashcard.classList.toggle('is-flipped');
+        });
+
+        btnKnown.addEventListener('click', () => handleChoice('known'));
+        btnLearning.addEventListener('click', () => handleChoice('learning'));
+
+        function handleChoice(status) {
+            results.push({ ...cards[currentCardIndex], status });
+            currentCardIndex++;
+
+            if (currentCardIndex < cards.length) {
+                displayCard();
+            } else {
+                // Session finished
+                sessionStorage.setItem('flashcardResults', JSON.stringify(results));
+                window.location.href = '4.html';
+            }
+        }
+    </script>
+</body>
+</html>
