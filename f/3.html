@@ -161,7 +161,6 @@
 
         function displayCard() {
             flashcard.classList.remove('is-flipped');
-            // A short delay to allow the card to flip back before changing content
             setTimeout(() => {
                 const card = cards[currentCardIndex];
                 cardQuestion.textContent = card.question;
@@ -184,7 +183,6 @@
             if (currentCardIndex < cards.length) {
                 displayCard();
             } else {
-                // Session finished
                 sessionStorage.setItem('flashcardResults', JSON.stringify(results));
                 window.location.href = '4.html';
             }
