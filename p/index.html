@@ -41,6 +41,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      z-index: 10;
     }
 
     .btn {
@@ -54,6 +55,7 @@
       -webkit-mask-repeat: no-repeat;
       -webkit-mask-position: center;
       cursor: pointer;
+      transition: background 0.3s;
     }
 
     .play {
@@ -103,7 +105,7 @@
     <div class="tap-area tap-right" ondblclick="toggleFullScreen()"></div>
 
     <div class="controls">
-      <div class="btn play" id="playPauseBtn"></div>
+      <div class="btn play" id="playPauseBtn" title="Play/Pause"></div>
       <div class="progress" id="progressBar">
         <div class="progress-filled" id="progressFill"></div>
       </div>
@@ -115,6 +117,10 @@
     let isPlaying = false;
     let hasUnmuted = false;
 
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+
     // Load YouTube API
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
@@ -123,7 +129,7 @@
     function getVideoIdFromURL() {
       const params = new URLSearchParams(window.location.search);
       const url = params.get("url");
-      if (!url) return "_qgT0bv-juc"; // default
+      if (!url) return "_qgT0bv-juc"; // fallback
       try {
         const yt = new URL(url);
         if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
@@ -151,12 +157,8 @@
     }
 
     function onPlayerReady() {
-      const btn = document.getElementById('playPauseBtn');
-      const progressBar = document.getElementById('progressBar');
-      const progressFill = document.getElementById('progressFill');
-
-      // Button click to toggle play/pause
-      btn.addEventListener('click', () => {
+      // PLAY / PAUSE BUTTON
+      playPauseBtn.addEventListener('click', () => {
         if (isPlaying) {
           player.pauseVideo();
         } else {
@@ -164,40 +166,43 @@
         }
       });
 
-      // Seek bar click
+      // PROGRESS BAR CLICK
       progressBar.addEventListener('click', (e) => {
         const rect = progressBar.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
-        player.seekTo(player.getDuration() * percent, true);
+        const time = player.getDuration() * percent;
+        player.seekTo(time, true);
       });
 
-      // Progress bar update
+      // UPDATE PROGRESS
       setInterval(() => {
-        if (player && player.getDuration) {
-          const progress = (player.getCurrentTime() / player.getDuration()) * 100;
-          progressFill.style.width = progress + "%";
+        if (player && player.getCurrentTime && player.getDuration) {
+          const current = player.getCurrentTime();
+          const total = player.getDuration();
+          const progress = (current / total) * 100;
+          progressFill.style.width = `${progress}%`;
         }
       }, 500);
     }
 
     function onPlayerStateChange(event) {
-      const btn = document.getElementById('playPauseBtn');
-
       if (event.data === YT.PlayerState.PLAYING) {
         isPlaying = true;
-        btn.classList.remove('play');
-        btn.classList.add('pause');
+        playPauseBtn.classList.remove('play');
+        playPauseBtn.classList.add('pause');
 
-        // Unmute safely after confirmed playing
         if (!hasUnmuted) {
           hasUnmuted = true;
-          setTimeout(() => player.unMute(), 1500); // delay to avoid autoplay block
+          setTimeout(() => player.unMute(), 1000);
         }
 
-      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+      } else if (
+        event.data === YT.PlayerState.PAUSED ||
+        event.data === YT.PlayerState.ENDED
+      ) {
         isPlaying = false;
-        btn.classList.remove('pause');
-        btn.classList.add('play');
+        playPauseBtn.classList.remove('pause');
+        playPauseBtn.classList.add('play');
       }
     }
 
@@ -205,7 +210,7 @@
       const elem = document.getElementById("video-container");
       if (!document.fullscreenElement) {
         elem.requestFullscreen().catch(err => {
-          alert(`Error entering fullscreen: ${err.message}`);
+          alert(`Fullscreen error: ${err.message}`);
         });
       } else {
         document.exitFullscreen();
@@ -214,4 +219,3 @@
   </script>
 </body>
 </html>
-no I
