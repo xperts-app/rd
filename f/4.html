@@ -1,0 +1,63 @@
+<!-- 4.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Session Results</h1>
+        
+        <div id="summary"></div>
+        
+        <h2>Cards You Know</h2>
+        <ul id="known-list"></ul>
+        
+        <h2>Cards to Review</h2>
+        <ul id="learning-list"></ul>
+
+        <a href="javascript:history.back()" style="display: block; text-align: center; margin-top: 20px;">Go Back</a>
+    </div>
+
+    <script>
+        window.onload = () => {
+            const summaryEl = document.getElementById('summary');
+            const knownList = document.getElementById('known-list');
+            const learningList = document.getElementById('learning-list');
+            
+            const resultsData = sessionStorage.getItem('flashcardResults');
+
+            if (!resultsData) {
+                summaryEl.innerHTML = '<p>No result data found. Please complete a flashcard session first.</p>';
+                return;
+            }
+
+            const results = JSON.parse(resultsData);
+            let knownCount = 0;
+            
+            results.forEach(card => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>Q:</strong> ${card.question}<br><strong>A:</strong> ${card.answer}`;
+                
+                if (card.status === 'known') {
+                    knownCount++;
+                    knownList.appendChild(li);
+                } else {
+                    learningList.appendChild(li);
+                }
+            });
+
+            summaryEl.innerHTML = `<h2>You knew ${knownCount} out of ${results.length} cards.</h2>`;
+
+            if(knownList.children.length === 0) knownList.innerHTML = '<li>None in this session.</li>';
+            if(learningList.children.length === 0) learningList.innerHTML = '<li>None in this session. Great job!</li>';
+            
+            // Clean up storage so it's fresh for the next session
+            sessionStorage.removeItem('flashcardResults');
+        };
+    </script>
+</body>
+</html>
