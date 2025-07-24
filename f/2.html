@@ -1,11 +1,50 @@
-<!-- 2.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select a Chapter</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Shared Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            color: #1c1e21;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        /* Chapter List Styles */
+        .chapter-link {
+            background: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: block;
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .chapter-link:hover {
+            background-color: #e9ecef;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -16,9 +55,26 @@
     </div>
 
     <script type="module">
-        import { db } from './firebase-config.js';
-        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4Fc3IhMFVz4v6mKc4tcc_yjaEIw4fbo4",
+            authDomain: "xperts-flashcards.firebaseapp.com",
+            projectId: "xperts-flashcards",
+            storageBucket: "xperts-flashcards.appspot.com",
+            messagingSenderId: "398115589486",
+            appId: "1:398115589486:web:3c513f5624686edd36c57f",
+            measurementId: "G-RYEDY563LR"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- Start of Application Logic ---
         window.onload = async () => {
             const chapterList = document.getElementById('chapter-list');
             const pageTitle = document.getElementById('page-title');
@@ -29,13 +85,13 @@
             const subjectName = params.get('subject')?.toUpperCase();
 
             if (!className || !subjectName) {
-                chapterList.innerHTML = `<p>Error: Please specify class and subject in the URL. <br>Example: ?class=10&subject=BIO</p>`;
+                chapterList.innerHTML = `<p>Error: Please specify class and subject in the URL. <br>Example: <b>?class=10&subject=BIO</b></p>`;
                 return;
             }
 
             pageTitle.textContent = `Class ${className} - ${subjectName} Chapters`;
 
-            // Query Firestore
+            // Query Firestore for matching chapters
             const q = query(collection(db, "chapters"), where("class", "==", className), where("subject", "==", subjectName));
             
             try {
@@ -48,6 +104,7 @@
                     querySnapshot.forEach((doc) => {
                         const chapter = doc.data();
                         const link = document.createElement('a');
+                        // Pass the unique chapter ID to the flashcard page
                         link.href = `3.html?chapterId=${doc.id}`;
                         link.textContent = chapter.chapterName;
                         link.classList.add('chapter-link');
