@@ -68,6 +68,11 @@
       -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png');
     }
 
+    .fullscreen {
+      mask-image: url('https://img.icons8.com/ios-filled/50/full-screen--v1.png');
+      -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/full-screen--v1.png');
+    }
+
     .progress {
       flex: 1;
       height: 6px;
@@ -83,29 +88,15 @@
       background: #007BFF;
       transition: width 0.1s linear;
     }
-
-    .tap-area {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 50%;
-      z-index: 5;
-    }
-
-    .tap-left { left: 0; }
-    .tap-right { right: 0; }
   </style>
 </head>
 <body>
   <div class="player-wrapper" id="video-container">
     <div id="player"></div>
 
-    <!-- Double Tap Fullscreen -->
-    <div class="tap-area tap-left" ondblclick="toggleFullScreen()"></div>
-    <div class="tap-area tap-right" ondblclick="toggleFullScreen()"></div>
-
     <div class="controls">
       <div class="btn play" id="playPauseBtn" title="Play/Pause"></div>
+      <div class="btn fullscreen" id="fullscreenBtn" title="Fullscreen"></div>
       <div class="progress" id="progressBar">
         <div class="progress-filled" id="progressFill"></div>
       </div>
@@ -118,10 +109,11 @@
     let hasUnmuted = false;
 
     const playPauseBtn = document.getElementById('playPauseBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
+    const videoContainer = document.getElementById("video-container");
 
-    // Load YouTube API
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.body.appendChild(tag);
@@ -129,7 +121,7 @@
     function getVideoIdFromURL() {
       const params = new URLSearchParams(window.location.search);
       const url = params.get("url");
-      if (!url) return "_qgT0bv-juc"; // fallback
+      if (!url) return "_qgT0bv-juc";
       try {
         const yt = new URL(url);
         if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
@@ -157,7 +149,6 @@
     }
 
     function onPlayerReady() {
-      // PLAY / PAUSE BUTTON
       playPauseBtn.addEventListener('click', () => {
         if (isPlaying) {
           player.pauseVideo();
@@ -166,21 +157,18 @@
         }
       });
 
-      // PROGRESS BAR CLICK
+      fullscreenBtn.addEventListener('click', toggleFullScreen);
+
       progressBar.addEventListener('click', (e) => {
         const rect = progressBar.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
-        const time = player.getDuration() * percent;
-        player.seekTo(time, true);
+        player.seekTo(player.getDuration() * percent, true);
       });
 
-      // UPDATE PROGRESS
       setInterval(() => {
-        if (player && player.getCurrentTime && player.getDuration) {
-          const current = player.getCurrentTime();
-          const total = player.getDuration();
-          const progress = (current / total) * 100;
-          progressFill.style.width = `${progress}%`;
+        if (player && player.getDuration) {
+          const progress = (player.getCurrentTime() / player.getDuration()) * 100;
+          progressFill.style.width = progress + "%";
         }
       }, 500);
     }
@@ -195,25 +183,34 @@
           hasUnmuted = true;
           setTimeout(() => player.unMute(), 1000);
         }
-
-      } else if (
-        event.data === YT.PlayerState.PAUSED ||
-        event.data === YT.PlayerState.ENDED
-      ) {
+      } else {
         isPlaying = false;
         playPauseBtn.classList.remove('pause');
         playPauseBtn.classList.add('play');
       }
     }
 
-    function toggleFullScreen() {
-      const elem = document.getElementById("video-container");
+    async function toggleFullScreen() {
       if (!document.fullscreenElement) {
-        elem.requestFullscreen().catch(err => {
-          alert(`Fullscreen error: ${err.message}`);
-        });
+        await videoContainer.requestFullscreen();
+        lockOrientation();
       } else {
         document.exitFullscreen();
+        unlockOrientation();
+      }
+    }
+
+    function lockOrientation() {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {
+          // Some browsers may not support orientation lock
+        });
+      }
+    }
+
+    function unlockOrientation() {
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
       }
     }
   </script>
