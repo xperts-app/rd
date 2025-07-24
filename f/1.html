@@ -1,11 +1,62 @@
-<!-- 1.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Add Flashcards</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Shared Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1, h2, h3 {
+            color: #1c1e21;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+        .hidden { display: none; }
+        ol { list-style-type: decimal; padding-left: 20px; }
+        li { background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 5px; }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -22,9 +73,9 @@
             <!-- Step 2: Choose Chapter -->
             <div>
                 <input type="radio" id="newChapterRadio" name="chapterChoice" value="new" checked>
-                <label for="newChapterRadio">Create New Chapter</label>
-                <input type="radio" id="existingChapterRadio" name="chapterChoice" value="existing">
-                <label for="existingChapterRadio">Add to Existing Chapter</label>
+                <label for="newChapterRadio" style="display:inline;">Create New Chapter</label>
+                <input type="radio" id="existingChapterRadio" name="chapterChoice" value="existing" style="margin-left: 20px;">
+                <label for="existingChapterRadio" style="display:inline;">Add to Existing Chapter</label>
             </div>
 
             <div id="newChapterContainer">
@@ -57,9 +108,26 @@
     </div>
 
     <script type="module">
-        import { db } from './firebase-config.js';
-        import { collection, addDoc, getDocs, query, where, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4Fc3IhMFVz4v6mKc4tcc_yjaEIw4fbo4",
+            authDomain: "xperts-flashcards.firebaseapp.com",
+            projectId: "xperts-flashcards",
+            storageBucket: "xperts-flashcards.appspot.com",
+            messagingSenderId: "398115589486",
+            appId: "1:398115589486:web:3c513f5624686edd36c57f",
+            measurementId: "G-RYEDY563LR"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- Start of Application Logic ---
         const classInput = document.getElementById('classInput');
         const subjectInput = document.getElementById('subjectInput');
         const newChapterRadio = document.getElementById('newChapterRadio');
@@ -135,7 +203,7 @@
             cardList.innerHTML = '';
             cardsToAdd.forEach((card, index) => {
                 const li = document.createElement('li');
-                li.textContent = `${index + 1}. Q: ${card.question}`;
+                li.textContent = `${index + 1}. Q: ${card.question.substring(0, 50)}...`;
                 cardList.appendChild(li);
             });
         }
