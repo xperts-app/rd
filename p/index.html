@@ -196,7 +196,9 @@
       player.seekTo(player.getCurrentTime() + 10, true);
     });
 
-    document.getElementById("fullscreenBtn").addEventListener("click", () => {
+    // ✅ FIX: prevent controls from hiding on fullscreen click
+    document.getElementById("fullscreenBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
       if (!document.fullscreenElement) {
         wrapper.requestFullscreen();
       } else {
