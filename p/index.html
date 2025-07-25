@@ -3,269 +3,306 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Custom YouTube Player</title>
+  <title>Edu Player with Notes</title>
   <style>
     body {
       margin: 0;
       background: #000;
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
       overflow: hidden;
     }
 
-    .player-wrapper {
+    .player-container {
       position: relative;
-      width: 90%;
-      max-width: 800px;
-      aspect-ratio: 16 / 9;
-      background: black;
-      border-radius: 12px;
-      overflow: hidden;
-      touch-action: manipulation;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
     }
 
     #player {
       width: 100%;
       height: 100%;
-      z-index: 1;
       pointer-events: none;
     }
 
-    .video-overlay {
+    .controls, .note-button, .note-popup, .info-dot {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 2;
+      z-index: 10;
     }
 
     .controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.6);
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
       display: flex;
       align-items: center;
       gap: 10px;
-      z-index: 3;
-      transition: opacity 0.3s;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 10px;
     }
 
     .btn {
-      width: 30px;
-      height: 30px;
-      background-color: #007BFF;
-      mask-size: contain;
-      mask-repeat: no-repeat;
-      mask-position: center;
-      -webkit-mask-size: contain;
-      -webkit-mask-repeat: no-repeat;
-      -webkit-mask-position: center;
-      cursor: pointer;
-      transition: background 0.3s;
-      flex-shrink: 0;
-    }
-
-    .play    { mask-image: url('https://img.icons8.com/ios-filled/50/play--v1.png'); }
-    .pause   { mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png'); }
-    .rewind  { mask-image: url('https://img.icons8.com/ios-filled/50/rewind.png'); }
-    .forward { mask-image: url('https://img.icons8.com/ios-filled/50/fast-forward.png'); }
-    .fullscreen { mask-image: url('https://img.icons8.com/ios-filled/50/full-screen--v1.png'); }
-
-    .progress {
-      flex: 1;
-      height: 6px;
-      background: #444;
-      border-radius: 3px;
-      cursor: pointer;
-      overflow: hidden;
-    }
-
-    .progress-filled {
-      width: 0%;
-      height: 100%;
-      background: #007BFF;
-      transition: width 0.1s linear;
-    }
-
-    .speed-select {
       background: #007BFF;
       color: white;
       border: none;
-      border-radius: 6px;
-      padding: 2px 6px;
+      padding: 10px;
+      border-radius: 50%;
       cursor: pointer;
     }
 
-    .hidden { opacity: 0; pointer-events: none; }
+    .progress {
+      flex: 1;
+      height: 5px;
+      background: #555;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .progress-filled {
+      height: 100%;
+      background: #00aaff;
+      width: 0%;
+    }
+
+    .note-button {
+      top: 10px;
+      right: 10px;
+      background: #007BFF;
+      color: white;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .note-popup {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      padding: 20px;
+      border-radius: 8px;
+      display: none;
+      width: 300px;
+    }
+
+    .note-popup textarea {
+      width: 100%;
+      height: 80px;
+    }
+
+    .info-dot {
+      width: 20px;
+      height: 20px;
+      background: orange;
+      border-radius: 50%;
+      top: 50px;
+      left: 50px;
+      display: none;
+      cursor: pointer;
+    }
+
+    .note-display {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      padding: 10px;
+      border-radius: 6px;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <div class="player-wrapper" id="video-container">
+  <div class="player-container" id="container">
     <div id="player"></div>
-    <div class="video-overlay" id="tapOverlay"></div>
 
-    <div class="controls" id="controls">
-      <div class="btn rewind" title="Back 10s" id="rewindBtn"></div>
-      <div class="btn play" title="Play/Pause" id="playPauseBtn"></div>
-      <div class="btn forward" title="Forward 10s" id="forwardBtn"></div>
-      <select class="speed-select" id="speedControl">
-        <option value="0.5">0.5x</option>
-        <option value="1" selected>1x</option>
+    <div class="note-button" id="noteBtn">✏️</div>
+
+    <div class="note-popup" id="notePopup">
+      <textarea id="noteText" placeholder="Write your note here..."></textarea>
+      <br />
+      <button class="btn" id="saveNote">Save Note</button>
+      <button class="btn" id="closeNote">Close</button>
+    </div>
+
+    <div class="note-display" id="noteDisplay"></div>
+
+    <div class="info-dot" id="infoDot" title="View Note"></div>
+
+    <div class="controls">
+      <button class="btn" id="rewind">⏪</button>
+      <button class="btn" id="playPause">▶️</button>
+      <button class="btn" id="forward">⏩</button>
+
+      <select id="speed">
+        <option value="1">1x</option>
         <option value="1.5">1.5x</option>
         <option value="2">2x</option>
       </select>
+
       <div class="progress" id="progressBar">
         <div class="progress-filled" id="progressFill"></div>
       </div>
-      <div class="btn fullscreen" id="fullscreenBtn" title="Fullscreen"></div>
+
+      <button class="btn" id="fullscreen">⛶</button>
     </div>
   </div>
 
   <script>
     let player;
     let isPlaying = false;
+    let notes = [];
+    let videoId = "_qgT0bv-juc";
+    let currentNote = null;
     let hasUnmuted = false;
-    let wakeLock = null;
-    let hideTimeout = null;
 
-    const $ = id => document.getElementById(id);
-    const playPauseBtn = $('playPauseBtn');
-    const forwardBtn = $('forwardBtn');
-    const rewindBtn = $('rewindBtn');
-    const fullscreenBtn = $('fullscreenBtn');
-    const speedControl = $('speedControl');
-    const progressBar = $('progressBar');
-    const progressFill = $('progressFill');
-    const videoContainer = $('video-container');
-    const controls = $('controls');
-    const tapOverlay = $('tapOverlay');
+    const getIdFromUrl = () => {
+      const p = new URLSearchParams(window.location.search);
+      const u = p.get("url");
+      if (!u) return "_qgT0bv-juc";
+      const yt = new URL(u);
+      if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
+      if (yt.hostname === "youtu.be") return yt.pathname.slice(1);
+      return "_qgT0bv-juc";
+    };
+
+    videoId = getIdFromUrl();
 
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.body.appendChild(tag);
 
-    function getVideoIdFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const url = params.get("url");
-      if (!url) return "_qgT0bv-juc";
-      try {
-        const yt = new URL(url);
-        if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
-        if (yt.hostname === "youtu.be") return yt.pathname.slice(1);
-      } catch {
-        return "_qgT0bv-juc";
-      }
-    }
-
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
-        videoId: getVideoIdFromURL(),
-        playerVars: {
-          modestbranding: 1,
-          rel: 0,
-          autoplay: 1,
-          mute: 1,
-          controls: 0,
-          fs: 0
-        },
+        videoId,
+        playerVars: { autoplay: 1, controls: 0, mute: 1 },
         events: {
           onReady: onPlayerReady,
-          onStateChange: onPlayerStateChange
+          onStateChange: onStateChange
         }
       });
     }
+
+    const rewindBtn = document.getElementById("rewind");
+    const playPauseBtn = document.getElementById("playPause");
+    const forwardBtn = document.getElementById("forward");
+    const speedSel = document.getElementById("speed");
+    const progressBar = document.getElementById("progressBar");
+    const progressFill = document.getElementById("progressFill");
+    const fullscreenBtn = document.getElementById("fullscreen");
+    const noteBtn = document.getElementById("noteBtn");
+    const notePopup = document.getElementById("notePopup");
+    const noteText = document.getElementById("noteText");
+    const saveNoteBtn = document.getElementById("saveNote");
+    const closeNoteBtn = document.getElementById("closeNote");
+    const infoDot = document.getElementById("infoDot");
+    const noteDisplay = document.getElementById("noteDisplay");
 
     function onPlayerReady() {
-      playPauseBtn.addEventListener('click', togglePlayPause);
-      forwardBtn.addEventListener('click', () => seekBy(10));
-      rewindBtn.addEventListener('click', () => seekBy(-10));
-      fullscreenBtn.addEventListener('click', toggleFullScreen);
-      speedControl.addEventListener('change', () => {
-        player.setPlaybackRate(parseFloat(speedControl.value));
-      });
-      progressBar.addEventListener('click', e => {
-        const rect = progressBar.getBoundingClientRect();
-        const percent = (e.clientX - rect.left) / rect.width;
-        player.seekTo(player.getDuration() * percent, true);
-      });
-
-      tapOverlay.addEventListener('click', showControls);
-
-      setInterval(() => {
-        if (player && player.getCurrentTime) {
-          const percent = (player.getCurrentTime() / player.getDuration()) * 100;
-          progressFill.style.width = percent + "%";
-        }
-      }, 500);
-
-      requestWakeLock();
+      setInterval(updateProgress, 500);
+      loadNotes();
     }
 
-    function togglePlayPause() {
-      if (isPlaying) {
-        player.pauseVideo();
-      } else {
-        player.playVideo();
-      }
-    }
-
-    function onPlayerStateChange(event) {
-      if (event.data === YT.PlayerState.PLAYING) {
+    function onStateChange(e) {
+      if (e.data === YT.PlayerState.PLAYING) {
         isPlaying = true;
-        playPauseBtn.classList.remove('play');
-        playPauseBtn.classList.add('pause');
+        playPauseBtn.textContent = "⏸";
         if (!hasUnmuted) {
-          hasUnmuted = true;
           setTimeout(() => player.unMute(), 1000);
+          hasUnmuted = true;
         }
-        autoHideControls();
       } else {
         isPlaying = false;
-        playPauseBtn.classList.remove('pause');
-        playPauseBtn.classList.add('play');
-        showControls();
+        playPauseBtn.textContent = "▶️";
       }
     }
 
-    function seekBy(seconds) {
-      const newTime = player.getCurrentTime() + seconds;
-      player.seekTo(Math.max(0, newTime), true);
+    function updateProgress() {
+      if (!player || !player.getCurrentTime) return;
+      const time = player.getCurrentTime();
+      const duration = player.getDuration();
+      const percent = (time / duration) * 100;
+      progressFill.style.width = percent + "%";
+
+      const note = notes.find(n => Math.abs(n.time - time) < 0.5);
+      if (note && note !== currentNote) {
+        currentNote = note;
+        showNoteIcon();
+      } else if (!note) {
+        hideNoteIcon();
+        currentNote = null;
+      }
     }
 
-    async function toggleFullScreen() {
+    function showNoteIcon() {
+      infoDot.style.display = "block";
+      infoDot.onclick = () => {
+        noteDisplay.textContent = currentNote.content;
+        noteDisplay.style.display = "block";
+        setTimeout(() => noteDisplay.style.display = "none", 4000);
+      };
+    }
+
+    function hideNoteIcon() {
+      infoDot.style.display = "none";
+    }
+
+    playPauseBtn.onclick = () => {
+      isPlaying ? player.pauseVideo() : player.playVideo();
+    };
+
+    rewindBtn.onclick = () => player.seekTo(player.getCurrentTime() - 10, true);
+    forwardBtn.onclick = () => player.seekTo(player.getCurrentTime() + 10, true);
+
+    speedSel.onchange = () => {
+      player.setPlaybackRate(parseFloat(speedSel.value));
+    };
+
+    progressBar.onclick = (e) => {
+      const rect = progressBar.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      const newTime = player.getDuration() * percent;
+      player.seekTo(newTime, true);
+    };
+
+    fullscreenBtn.onclick = async () => {
+      const container = document.getElementById("container");
       if (!document.fullscreenElement) {
-        await videoContainer.requestFullscreen();
-        if (screen.orientation?.lock) {
+        await container.requestFullscreen();
+        if (screen.orientation && screen.orientation.lock)
           screen.orientation.lock("landscape").catch(() => {});
-        }
       } else {
         document.exitFullscreen();
       }
-    }
+    };
 
-    function showControls() {
-      controls.classList.remove('hidden');
-      clearTimeout(hideTimeout);
-      hideTimeout = setTimeout(() => {
-        controls.classList.add('hidden');
-      }, 4000);
-    }
+    noteBtn.onclick = () => {
+      notePopup.style.display = "block";
+      noteText.value = "";
+    };
 
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        }
-      } catch (e) {
-        console.log("Wake Lock not supported.");
+    closeNoteBtn.onclick = () => {
+      notePopup.style.display = "none";
+    };
+
+    saveNoteBtn.onclick = () => {
+      const content = noteText.value.trim();
+      if (!content) return;
+      const time = player.getCurrentTime();
+      const note = { time, content };
+      notes.push(note);
+      localStorage.setItem(`notes_${videoId}`, JSON.stringify(notes));
+      notePopup.style.display = "none";
+    };
+
+    function loadNotes() {
+      const saved = localStorage.getItem(`notes_${videoId}`);
+      if (saved) {
+        notes = JSON.parse(saved);
       }
     }
   </script>
