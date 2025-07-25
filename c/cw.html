@@ -79,8 +79,12 @@
             carouselTrack.innerHTML = continueWatchingList.map(video => {
                 const themeClass = themeMap[video.subject.toUpperCase()] || '';
                 const thumbUrl = imageUrlMap[video.subject.toUpperCase()] || 'https://via.placeholder.com/220x280';
+                
+                // MODIFIED: Construct the link for the custom player
+                const playerUrl = `https://xperts-app.github.io/rd/p/?video=${encodeURIComponent(video.url)}`;
+
                 return `
-                    <a href="${video.url}" target="_blank" class="carousel-card ${themeClass}">
+                    <a href="${playerUrl}" class="carousel-card ${themeClass}">
                         <img src="${thumbUrl}" alt="${video.title}" class="card-thumbnail">
                         <div class="card-overlay"></div>
                         <div class="card-content">
@@ -108,4 +112,4 @@
         });
     </script>
 </body>
-</html>
+</html>```
