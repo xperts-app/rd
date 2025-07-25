@@ -170,11 +170,15 @@
 
                 if (videos.length > 0) {
                     videoListEl.innerHTML = videos.map(item => {
+                        // MODIFIED: Construct the link for the custom player
+                        const playerUrl = `https://xperts-app.github.io/rd/p/?video=${encodeURIComponent(item.url)}`;
+                        
                         const videoData = { title: item.title, url: item.url, chapter: chapterName, class: className, subject: subjectKey, progress: Math.floor(Math.random() * (90 - 10 + 1)) + 10 };
                         const escapedVideoData = JSON.stringify(videoData).replace(/'/g, "\\'");
+                        
                         return `
                         <li>
-                            <a href="${item.url}" target="_blank" class="content-item" onclick='saveToContinueWatching(${escapedVideoData})'>
+                            <a href="${playerUrl}" target="_blank" class="content-item" onclick='saveToContinueWatching(${escapedVideoData})'>
                                 <div class="item-thumbnail">${videoThumbUrl ? `<img src="${videoThumbUrl}" alt="Video thumbnail" class="thumbnail-img">` : `<span class="thumbnail-icon">►</span>`}</div>
                                 <div class="item-details"><p class="item-title">${item.title}</p></div>
                                 <div class="item-action"><span class="download-icon">↓</span></div>
