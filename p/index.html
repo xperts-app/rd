@@ -14,6 +14,7 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
+      overflow: hidden;
     }
 
     .player-wrapper {
@@ -24,16 +25,16 @@
       background: black;
       border-radius: 12px;
       overflow: hidden;
+      touch-action: manipulation;
     }
 
     #player {
       width: 100%;
       height: 100%;
       z-index: 1;
-      pointer-events: none; /* Prevent user from interacting with YouTube player */
+      pointer-events: none;
     }
 
-    /* Overlay to prevent YouTube UI on tap/click */
     .video-overlay {
       position: absolute;
       top: 0;
@@ -54,6 +55,7 @@
       align-items: center;
       gap: 10px;
       z-index: 3;
+      transition: opacity 0.3s;
     }
 
     .btn {
@@ -71,21 +73,11 @@
       flex-shrink: 0;
     }
 
-    .play {
-      mask-image: url('https://img.icons8.com/ios-filled/50/play--v1.png');
-      -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/play--v1.png');
-    }
-
-    .pause {
-      mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png');
-      -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png');
-    }
-
-    .fullscreen {
-      mask-image: url('https://img.icons8.com/ios-filled/50/full-screen--v1.png');
-      -webkit-mask-image: url('https://img.icons8.com/ios-filled/50/full-screen--v1.png');
-      margin-left: auto;
-    }
+    .play    { mask-image: url('https://img.icons8.com/ios-filled/50/play--v1.png'); }
+    .pause   { mask-image: url('https://img.icons8.com/ios-filled/50/pause--v1.png'); }
+    .rewind  { mask-image: url('https://img.icons8.com/ios-filled/50/rewind.png'); }
+    .forward { mask-image: url('https://img.icons8.com/ios-filled/50/fast-forward.png'); }
+    .fullscreen { mask-image: url('https://img.icons8.com/ios-filled/50/full-screen--v1.png'); }
 
     .progress {
       flex: 1;
@@ -102,15 +94,34 @@
       background: #007BFF;
       transition: width 0.1s linear;
     }
+
+    .speed-select {
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+
+    .hidden { opacity: 0; pointer-events: none; }
   </style>
 </head>
 <body>
   <div class="player-wrapper" id="video-container">
     <div id="player"></div>
-    <div class="video-overlay"></div>
+    <div class="video-overlay" id="tapOverlay"></div>
 
-    <div class="controls">
-      <div class="btn play" id="playPauseBtn" title="Play/Pause"></div>
+    <div class="controls" id="controls">
+      <div class="btn rewind" title="Back 10s" id="rewindBtn"></div>
+      <div class="btn play" title="Play/Pause" id="playPauseBtn"></div>
+      <div class="btn forward" title="Forward 10s" id="forwardBtn"></div>
+      <select class="speed-select" id="speedControl">
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+      </select>
       <div class="progress" id="progressBar">
         <div class="progress-filled" id="progressFill"></div>
       </div>
@@ -122,14 +133,21 @@
     let player;
     let isPlaying = false;
     let hasUnmuted = false;
+    let wakeLock = null;
+    let hideTimeout = null;
 
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const videoContainer = document.getElementById("video-container");
+    const $ = id => document.getElementById(id);
+    const playPauseBtn = $('playPauseBtn');
+    const forwardBtn = $('forwardBtn');
+    const rewindBtn = $('rewindBtn');
+    const fullscreenBtn = $('fullscreenBtn');
+    const speedControl = $('speedControl');
+    const progressBar = $('progressBar');
+    const progressFill = $('progressFill');
+    const videoContainer = $('video-container');
+    const controls = $('controls');
+    const tapOverlay = $('tapOverlay');
 
-    // Load YouTube API
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.body.appendChild(tag);
@@ -137,7 +155,7 @@
     function getVideoIdFromURL() {
       const params = new URLSearchParams(window.location.search);
       const url = params.get("url");
-      if (!url) return "_qgT0bv-juc"; // fallback
+      if (!url) return "_qgT0bv-juc";
       try {
         const yt = new URL(url);
         if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
@@ -156,8 +174,7 @@
           autoplay: 1,
           mute: 1,
           controls: 0,
-          showinfo: 0,
-          fs: 0 // Hide YouTube's fullscreen icon
+          fs: 0
         },
         events: {
           onReady: onPlayerReady,
@@ -167,31 +184,37 @@
     }
 
     function onPlayerReady() {
-      playPauseBtn.addEventListener('click', () => {
-        if (isPlaying) {
-          player.pauseVideo();
-        } else {
-          player.playVideo();
-        }
-      });
-
+      playPauseBtn.addEventListener('click', togglePlayPause);
+      forwardBtn.addEventListener('click', () => seekBy(10));
+      rewindBtn.addEventListener('click', () => seekBy(-10));
       fullscreenBtn.addEventListener('click', toggleFullScreen);
-
-      progressBar.addEventListener('click', (e) => {
+      speedControl.addEventListener('change', () => {
+        player.setPlaybackRate(parseFloat(speedControl.value));
+      });
+      progressBar.addEventListener('click', e => {
         const rect = progressBar.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
-        const newTime = percent * player.getDuration();
-        player.seekTo(newTime, true);
+        player.seekTo(player.getDuration() * percent, true);
       });
 
+      tapOverlay.addEventListener('click', showControls);
+
       setInterval(() => {
-        if (player && player.getDuration) {
-          const current = player.getCurrentTime();
-          const duration = player.getDuration();
-          const percent = (current / duration) * 100;
+        if (player && player.getCurrentTime) {
+          const percent = (player.getCurrentTime() / player.getDuration()) * 100;
           progressFill.style.width = percent + "%";
         }
       }, 500);
+
+      requestWakeLock();
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
     }
 
     function onPlayerStateChange(event) {
@@ -199,38 +222,50 @@
         isPlaying = true;
         playPauseBtn.classList.remove('play');
         playPauseBtn.classList.add('pause');
-
         if (!hasUnmuted) {
           hasUnmuted = true;
           setTimeout(() => player.unMute(), 1000);
         }
-
+        autoHideControls();
       } else {
         isPlaying = false;
         playPauseBtn.classList.remove('pause');
         playPauseBtn.classList.add('play');
+        showControls();
       }
+    }
+
+    function seekBy(seconds) {
+      const newTime = player.getCurrentTime() + seconds;
+      player.seekTo(Math.max(0, newTime), true);
     }
 
     async function toggleFullScreen() {
       if (!document.fullscreenElement) {
         await videoContainer.requestFullscreen();
-        lockOrientation();
+        if (screen.orientation?.lock) {
+          screen.orientation.lock("landscape").catch(() => {});
+        }
       } else {
         document.exitFullscreen();
-        unlockOrientation();
       }
     }
 
-    function lockOrientation() {
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock("landscape").catch(() => {});
-      }
+    function showControls() {
+      controls.classList.remove('hidden');
+      clearTimeout(hideTimeout);
+      hideTimeout = setTimeout(() => {
+        controls.classList.add('hidden');
+      }, 4000);
     }
 
-    function unlockOrientation() {
-      if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {
+        console.log("Wake Lock not supported.");
       }
     }
   </script>
