@@ -51,9 +51,9 @@
               imageUrlInput = document.getElementById('imageUrl'), submitBtn = document.getElementById('submitBtn'), imageForm = document.getElementById('imageForm'),
               statusDiv = document.getElementById('status'), previewContainer = document.getElementById('image-preview-container'), previewImg = document.getElementById('image-preview');
 
-        // --- CORRECTED: Robust Document ID Creation ---
+        // --- CORRECTED: Robust Document ID Creation Function ---
         const createDocId = (className, subjectName, chapterName) => {
-            const clean = (str) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            const clean = (str) => str.toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
             return `${clean(className)}_${clean(subjectName)}_${clean(chapterName)}`;
         };
 
