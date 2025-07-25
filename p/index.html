@@ -96,20 +96,15 @@
     }
 
     .info-dot {
-      width: 30px;
-      height: 30px;
-      background: #ffa500;
-      border-radius: 50%;
-      display: none;
+      font-size: 20px;
+      color: #00aaff;
+      background: none;
+      border: none;
+      cursor: pointer;
+      position: absolute;
       top: 60px;
       left: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
+      display: none;
     }
 
     .note-display {
@@ -117,7 +112,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       display: none;
       align-items: center;
       justify-content: center;
@@ -128,11 +123,14 @@
 
     .note-display .close-btn {
       position: absolute;
-      top: 20px;
+      top: 15px;
       right: 20px;
-      font-size: 28px;
-      color: white;
+      font-size: 24px;
+      background: none;
+      border: none;
+      color: #fff;
       cursor: pointer;
+      z-index: 20;
     }
   </style>
 </head>
@@ -150,11 +148,11 @@
     </div>
 
     <div class="note-display" id="noteDisplay">
-      <div class="close-btn" id="closeNoteDisplay"><i class="fas fa-times-circle"></i></div>
+      <button class="close-btn" id="closeNoteDisplay"><i class="fas fa-times-circle"></i></button>
       <div id="noteContent"></div>
     </div>
 
-    <div class="info-dot" id="infoDot"><i class="fas fa-info"></i></div>
+    <div class="info-dot" id="infoDot"><i class="fas fa-info-circle"></i></div>
 
     <div class="controls">
       <button class="btn" id="rewind"><i class="fas fa-backward"></i></button>
@@ -248,7 +246,7 @@
     }
 
     function showNoteIcon() {
-      infoDot.style.display = "flex";
+      infoDot.style.display = "block";
       if (infoTimeout) clearTimeout(infoTimeout);
       infoTimeout = setTimeout(() => {
         infoDot.style.display = "none";
