@@ -136,6 +136,11 @@
             'MATH': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10', 'CHEM': 'https://plus.unsplash.com/premium_photo-1681426678542-613c306013e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2hlbWlzdHJ5fGVufDB8fDB8fHww',
             'SST': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10'
         };
+        
+        // Helper to create a Firestore-safe Document ID, must match img.html
+        const createDocId = (className, subjectName, chapterName) => {
+            return `${className.replace(/\s/g, '')}_${subjectName}_${chapterName.replace(/[\.\#\$\[\]\/]/g, '')}`;
+        };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const body = document.body, chapterHeaderEl = document.getElementById('chapter-header'), chapterTitleEl = document.getElementById('chapter-title'),
@@ -153,8 +158,22 @@
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) body.classList.add(themeClass);
             
-            const headerImageUrl = imageUrlMap[subjectKey.toUpperCase()];
-            if (headerImageUrl) chapterHeaderEl.style.backgroundImage = `url('${headerImageUrl}')`;
+            // --- UPDATED LOGIC TO FETCH HEADER IMAGE ---
+            const docId = createDocId(className, subjectKey, chapterName);
+            const docRef = db.collection('chapter_metadata').doc(docId);
+            try {
+                const docSnap = await docRef.get();
+                if (docSnap.exists() && docSnap.data().headerImageUrl) {
+                    chapterHeaderEl.style.backgroundImage = `url('${docSnap.data().headerImageUrl}')`;
+                } else {
+                    const defaultHeaderImageUrl = imageUrlMap[subjectKey.toUpperCase()];
+                    if (defaultHeaderImageUrl) chapterHeaderEl.style.backgroundImage = `url('${defaultHeaderImageUrl}')`;
+                }
+            } catch (error) {
+                 console.error("Error fetching custom header image:", error);
+                 const defaultHeaderImageUrl = imageUrlMap[subjectKey.toUpperCase()];
+                 if (defaultHeaderImageUrl) chapterHeaderEl.style.backgroundImage = `url('${defaultHeaderImageUrl}')`;
+            }
 
             const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
             chapterTitleEl.textContent = chapterName;
