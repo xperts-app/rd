@@ -1,9 +1,11 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Edu Player</title>
+  <title>EduPlayer</title>
   <style>
     body {
       margin: 0;
@@ -23,6 +25,7 @@
       background: black;
       border-radius: 10px;
       overflow: hidden;
+      cursor: pointer;
     }
 
     #player {
@@ -36,7 +39,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      display: flex;
+      display: none;
       gap: 40px;
       z-index: 10;
     }
@@ -71,7 +74,7 @@
       right: 0;
       background: rgba(0, 0, 0, 0.6);
       padding: 8px 12px;
-      display: flex;
+      display: none;
       align-items: center;
       gap: 10px;
       z-index: 10;
@@ -101,6 +104,13 @@
       border-radius: 4px;
       font-size: 14px;
     }
+
+    .bottom-bar span {
+      color: #fff;
+      font-size: 14px;
+      width: 50px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -109,7 +119,7 @@
   <div id="player"></div>
 
   <!-- Center controls -->
-  <div class="center-controls">
+  <div class="center-controls" id="centerControls">
     <button class="control-btn" id="rewind" title="Rewind 10s">
       <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6L11 18zm1-12v12l8.5-6L12 6z"/></svg>
     </button>
@@ -122,10 +132,12 @@
   </div>
 
   <!-- Bottom progress and speed -->
-  <div class="bottom-bar">
+  <div class="bottom-bar" id="bottomBar">
+    <span id="currentTime">0:00</span>
     <div class="progress-bar" id="progressBar">
       <div class="progress-fill" id="progressFill"></div>
     </div>
+    <span id="remainingTime">-0:00</span>
     <select class="speed-select" id="speed">
       <option value="1">1x</option>
       <option value="1.25">1.25x</option>
@@ -137,30 +149,37 @@
 
 <script>
   let player, isPlaying = false;
-  const playIcon = document.getElementById('playIcon');
   const wrapper = document.getElementById('wrapper');
+  const playIcon = document.getElementById('playIcon');
+  const centerControls = document.getElementById('centerControls');
+  const bottomBar = document.getElementById('bottomBar');
   const progressBar = document.getElementById('progressBar');
   const progressFill = document.getElementById('progressFill');
+  let controlsVisible = true;
+  let autoHideTimer;
 
-  // Load YouTube iframe API
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   document.body.appendChild(tag);
 
   function getVideoId() {
     const p = new URLSearchParams(window.location.search);
-    const u = p.get("url");
+    const u = p.get("video");
     if (!u) return "_qgT0bv-juc";
-    const yt = new URL(u);
-    if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
-    if (yt.hostname === "youtu.be") return yt.pathname.slice(1);
+    try {
+      const yt = new URL(u);
+      if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
+      if (yt.hostname === "youtu.be") return yt.pathname.slice(1);
+    } catch {
+      return u;
+    }
     return "_qgT0bv-juc";
   }
 
   function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
       videoId: getVideoId(),
-      playerVars: { autoplay: 1, controls: 0, modestbranding: 1 },
+      playerVars: { autoplay: 1, controls: 0, modestbranding: 1, mute: 1 },
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange
@@ -169,6 +188,20 @@
   }
 
   function onPlayerReady() {
+    player.unMute();
+
+    const videoId = getVideoId();
+    const savedTime = localStorage.getItem("videoTime_" + videoId);
+    if (savedTime) {
+      player.seekTo(parseFloat(savedTime), true);
+    }
+
+    setInterval(() => {
+      if (player && player.getCurrentTime) {
+        localStorage.setItem("videoTime_" + videoId, player.getCurrentTime());
+      }
+    }, 5000);
+
     document.getElementById("playPause").addEventListener("click", () => {
       isPlaying ? player.pauseVideo() : player.playVideo();
     });
@@ -185,7 +218,6 @@
       player.setPlaybackRate(parseFloat(e.target.value));
     });
 
-    // Fullscreen toggle on double click
     wrapper.addEventListener("dblclick", () => {
       if (!document.fullscreenElement) {
         wrapper.requestFullscreen();
@@ -194,14 +226,23 @@
       }
     });
 
-    // Progress updates
+    wrapper.addEventListener("click", () => {
+      toggleControls();
+    });
+
+    showControls();
+
     setInterval(() => {
       if (!player || !player.getDuration) return;
-      const percent = (player.getCurrentTime() / player.getDuration()) * 100;
+      const current = player.getCurrentTime();
+      const total = player.getDuration();
+      const percent = (current / total) * 100;
       progressFill.style.width = percent + "%";
+
+      document.getElementById("currentTime").textContent = formatTime(current);
+      document.getElementById("remainingTime").textContent = "-" + formatTime(total - current);
     }, 500);
 
-    // Seek on click
     progressBar.addEventListener("click", (e) => {
       const rect = progressBar.getBoundingClientRect();
       const pct = (e.clientX - rect.left) / rect.width;
@@ -213,11 +254,39 @@
   function onPlayerStateChange(e) {
     if (e.data === YT.PlayerState.PLAYING) {
       isPlaying = true;
-      playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; // pause
+      playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
     } else {
       isPlaying = false;
-      playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; // play
+      playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
     }
+
+    if (e.data === YT.PlayerState.ENDED) {
+      localStorage.removeItem("videoTime_" + getVideoId());
+    }
+  }
+
+  function showControls() {
+    centerControls.style.display = "flex";
+    bottomBar.style.display = "flex";
+    controlsVisible = true;
+    clearTimeout(autoHideTimer);
+    autoHideTimer = setTimeout(hideControls, 3000);
+  }
+
+  function hideControls() {
+    centerControls.style.display = "none";
+    bottomBar.style.display = "none";
+    controlsVisible = false;
+  }
+
+  function toggleControls() {
+    controlsVisible ? hideControls() : showControls();
+  }
+
+  function formatTime(sec) {
+    const minutes = Math.floor(sec / 60);
+    const seconds = Math.floor(sec % 60).toString().padStart(2, "0");
+    return `${minutes}:${seconds}`;
   }
 </script>
 
