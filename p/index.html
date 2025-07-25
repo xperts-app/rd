@@ -3,159 +3,140 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Blue SVG Video Player</title>
+  <title>Modern Edu Video Player</title>
   <style>
-    body {
-      margin: 0;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    .player-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 800px;
-      aspect-ratio: 16/9;
-      background: black;
-      overflow: hidden;
-      border-radius: 10px;
-    }
-
-    #player {
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    .overlay-controls {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      display: flex;
-      gap: 40px;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .overlay-controls.visible {
-      opacity: 1;
-    }
-
-    .btn {
-      width: 64px;
-      height: 64px;
-      background: rgba(0, 123, 255, 0.75);
-      border: none;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-
-    .btn:hover {
-      background: rgba(0, 123, 255, 1);
-    }
-
-    .btn svg {
-      width: 28px;
-      height: 28px;
-      fill: white;
-    }
+    body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height:100vh; }
+    .wrapper { position: relative; width: 90%; max-width: 800px; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; }
+    #player { width:100%; height:100%; pointer-events:none; }
+    .overlay { position:absolute; inset:0; cursor:pointer; }
+    .controls { position:absolute; bottom:15px; left: 10px; right:10px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.5); padding:8px; border-radius:8px; }
+    .btn { width:44px; height:44px; background:rgba(0,123,255,0.75); border:none; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background 0.3s; }
+    .btn:hover { background:rgba(0,123,255,1); }
+    .btn svg { width:24px; height:24px; fill:#fff; }
+    .progress { flex:1; height:6px; background:#555; border-radius:3px; position:relative; cursor:pointer; }
+    .progress-filled { height:100%; background:#00aaff; width:0%; }
+    .speed { background:#007bff; color:#fff; border:none; border-radius:4px; padding:4px; font-size:14px; }
   </style>
 </head>
 <body>
 
-<div class="player-wrapper" id="wrapper">
+<div class="wrapper" id="wrapper">
   <div id="player"></div>
+  <div class="overlay" id="overlay"></div>
 
-  <div class="overlay-controls" id="overlay">
-    <button class="btn" id="rewind">
+  <div class="controls" id="controls">
+    <button class="btn" id="rewind" title="Rewind 10s">
       <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6L11 18zm1-12v12l8.5-6L12 6z"/></svg>
     </button>
-    <button class="btn" id="playPause">
+    <button class="btn" id="playPause" title="Play/Pause">
       <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
     </button>
-    <button class="btn" id="forward">
+    <button class="btn" id="forward" title="Forward 10s">
       <svg viewBox="0 0 24 24"><path d="M13 6v12l8.5-6L13 6zm-1 12V6l-8.5 6L12 18z"/></svg>
     </button>
+
+    <select class="speed" id="speed">
+      <option value="1">1x</option>
+      <option value="1.25">1.25x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+    </select>
+
+    <div class="progress" id="progressBar">
+      <div class="progress-filled" id="progressFill"></div>
+    </div>
   </div>
 </div>
 
 <script>
-  let player;
-  let isPlaying = false;
-
-  const overlay = document.getElementById('overlay');
+  let player, isPlaying=false;
   const wrapper = document.getElementById('wrapper');
-  const playPauseBtn = document.getElementById('playPause');
+  const controls = document.getElementById('controls');
+  const overlay = document.getElementById('overlay');
+  const playBtn = document.getElementById('playPause');
   const rewindBtn = document.getElementById('rewind');
   const forwardBtn = document.getElementById('forward');
   const playIcon = document.getElementById('playIcon');
+  const speedSel = document.getElementById('speed');
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
 
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
+  const tag=document.createElement('script');
+  tag.src="https://www.youtube.com/iframe_api";
   document.body.appendChild(tag);
 
-  function getVideoId() {
-    const p = new URLSearchParams(window.location.search);
-    const u = p.get("url");
+  function getVideoId(){
+    const p=new URLSearchParams(location.search);
+    const u=p.get("url");
     if (!u) return "_qgT0bv-juc";
-    const yt = new URL(u);
+    const yt=new URL(u);
     if (yt.hostname.includes("youtube.com")) return yt.searchParams.get("v");
-    if (yt.hostname === "youtu.be") return yt.pathname.slice(1);
+    if (yt.hostname==="youtu.be") return yt.pathname.slice(1);
     return "_qgT0bv-juc";
   }
 
-  function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player', {
+  function onYouTubeIframeAPIReady(){
+    player=new YT.Player('player',{
       videoId: getVideoId(),
-      playerVars: { autoplay: 1, controls: 0, modestbranding: 1 },
-      events: {
-        onReady: onReady,
-        onStateChange: onStateChange
-      }
+      playerVars:{ autoplay:1, controls:0, modestbranding:1, rel:0, mute:1 },
+      events:{ onReady:onReady, onStateChange:onStateChange }
     });
   }
 
-  function onReady() {
-    wrapper.addEventListener('click', () => {
-      overlay.classList.add('visible');
-      setTimeout(() => overlay.classList.remove('visible'), 2500);
-    });
+  function onReady(){
+    wrapper.addEventListener('click',()=>{ controls.classList.add('visible'); setTimeout(()=>controls.classList.remove('visible'),2500); });
+    wrapper.addEventListener('dblclick',()=>{ document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); });
+    playBtn.addEventListener('click',()=>{ isPlaying?player.pauseVideo():player.playVideo(); });
+    rewindBtn.addEventListener('click',()=>player.seekTo(player.getCurrentTime()-10,true));
+    forwardBtn.addEventListener('click',()=>player.seekTo(player.getCurrentTime()+10,true));
+    speedSel.addEventListener('change',()=>player.setPlaybackRate(parseFloat(speedSel.value)));
 
-    playPauseBtn.addEventListener('click', () => {
-      if (isPlaying) {
-        player.pauseVideo();
-      } else {
-        player.playVideo();
-      }
-    });
-
-    rewindBtn.addEventListener('click', () => {
-      player.seekTo(player.getCurrentTime() - 10, true);
-    });
-
-    forwardBtn.addEventListener('click', () => {
-      player.seekTo(player.getCurrentTime() + 10, true);
-    });
+    progressBar.addEventListener('mousedown',onDragStart);
+    progressBar.addEventListener('click',seekTo);
+    setInterval(updateProgress,500);
   }
 
-  function onStateChange(e) {
-    if (e.data === YT.PlayerState.PLAYING) {
-      isPlaying = true;
-      playIcon.setAttribute("d", "M6 19h4V5H6v14zm8-14v14h4V5h-4z"); // Pause
-      playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  function onStateChange(e){
+    if(e.data===YT.PlayerState.PLAYING){
+      isPlaying=true;
+      player.unMute();
+      playIcon.innerHTML='<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; // pause
     } else {
-      isPlaying = false;
-      playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; // Play
+      isPlaying=false;
+      playIcon.innerHTML='<path d="M8 5v14l11-7z"/>'; // play
     }
+  }
+
+  function updateProgress(){
+    if (!player || !player.getCurrentTime) return;
+    const c=player.getCurrentTime(), d=player.getDuration();
+    progressFill.style.width=(c/d*100)+'%';
+  }
+
+  let dragging=false;
+  function onDragStart(e){
+    dragging=true;
+    onSeek(e);
+    window.addEventListener('mousemove',onSeek);
+    window.addEventListener('mouseup',onDragEnd);
+  }
+  function onSeek(e){
+    if(!dragging) return;
+    const rect=progressBar.getBoundingClientRect();
+    const pct=Math.min(Math.max(0,(e.clientX-rect.left) / rect.width),1);
+    progressFill.style.width=(pct*100)+'%';
+  }
+  function onDragEnd(e){
+    dragging=false;
+    window.removeEventListener('mousemove',onSeek);
+    window.removeEventListener('mouseup',onDragEnd);
+    seekTo(e);
+  }
+  function seekTo(e){
+    const rect=progressBar.getBoundingClientRect();
+    const pct=Math.min(Math.max(0,(e.clientX-rect.left) / rect.width),1);
+    const target = player.getDuration()*pct;
+    player.seekTo(target,true);
   }
 </script>
 
