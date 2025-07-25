@@ -132,9 +132,9 @@
             'SST': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10'
         };
         
-        // --- CORRECTED: Robust Document ID Creation ---
+        // --- CORRECTED: Robust Document ID Creation Function ---
         const createDocId = (className, subjectName, chapterName) => {
-            const clean = (str) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            const clean = (str) => str.toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
             return `${clean(className)}_${clean(subjectName)}_${clean(chapterName)}`;
         };
 
