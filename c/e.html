@@ -4,18 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Viewer</title>
-    <!-- Google Fonts for a modern look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --accent-color: #6d6d6d;
-            --text-primary: #1a202c;
-            --text-secondary: #718096;
-            --border-color: #e2e8f0;
-            --card-bg: #ffffff;
-            --body-bg: #f7fafc;
+            --accent-color: #6d6d6d; --text-primary: #1a202c; --text-secondary: #718096;
+            --border-color: #e2e8f0; --card-bg: #ffffff; --body-bg: #f7fafc;
         }
         .theme-bio, .theme-botany, .theme-zoology { --accent-color: #10B981; }
         .theme-eng { --accent-color: #EF4444; }
@@ -137,9 +132,10 @@
             'SST': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10'
         };
         
-        // Helper to create a Firestore-safe Document ID, must match img.html
+        // --- CORRECTED: Robust Document ID Creation ---
         const createDocId = (className, subjectName, chapterName) => {
-            return `${className.replace(/\s/g, '')}_${subjectName}_${chapterName.replace(/[\.\#\$\[\]\/]/g, '')}`;
+            const clean = (str) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            return `${clean(className)}_${clean(subjectName)}_${clean(chapterName)}`;
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -158,7 +154,7 @@
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) body.classList.add(themeClass);
             
-            // --- UPDATED LOGIC TO FETCH HEADER IMAGE ---
+            // --- CORRECTED LOGIC TO FETCH HEADER IMAGE ---
             const docId = createDocId(className, subjectKey, chapterName);
             const docRef = db.collection('chapter_metadata').doc(docId);
             try {
