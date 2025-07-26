@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EduPlayer</title>
   <style>
+    * {
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
     body {
       margin: 0;
       background: #000;
@@ -14,7 +20,6 @@
       height: 100vh;
       font-family: sans-serif;
     }
-
     .player-wrapper {
       position: relative;
       width: 100%;
@@ -25,13 +30,11 @@
       overflow: hidden;
       cursor: pointer;
     }
-
     #player {
       width: 100%;
       height: 100%;
       pointer-events: none;
     }
-
     .center-controls {
       position: absolute;
       top: 50%;
@@ -41,7 +44,6 @@
       gap: 40px;
       z-index: 10;
     }
-
     .control-btn {
       background: transparent;
       border: none;
@@ -51,18 +53,15 @@
       align-items: center;
       justify-content: center;
     }
-
     .control-btn svg {
       width: 32px;
       height: 32px;
       fill: #ffffff;
       transition: fill 0.2s ease;
     }
-
     .control-btn:hover svg {
       fill: #00aaff;
     }
-
     .bottom-bar {
       position: absolute;
       bottom: 0;
@@ -75,7 +74,6 @@
       gap: 10px;
       z-index: 10;
     }
-
     .progress-bar {
       flex: 1;
       height: 6px;
@@ -84,14 +82,12 @@
       cursor: pointer;
       position: relative;
     }
-
     .progress-fill {
       height: 100%;
       width: 0%;
       background: #00aaff;
       border-radius: 4px;
     }
-
     .bottom-bar span {
       color: #fff;
       font-size: 14px;
@@ -124,7 +120,7 @@
     </div>
     <span id="remainingTime">-0:00</span>
     <button class="control-btn" id="fullscreenBtn" title="Fullscreen">
-      <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H7v5zm10-5h-5v2h3v3h2V5zm-2 12h-3v2h5v-5h-2v3z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M7 14v3h3v2H5v-5h2zm0-4H5V5h5v2H7v3zm10 4h2v5h-5v-2h3v-3zm0-4V7h-3V5h5v5h-2z"/></svg>
     </button>
   </div>
 </div>
@@ -171,32 +167,23 @@
 
   function onPlayerReady() {
     player.unMute();
-
     const videoId = getVideoId();
     const savedTime = localStorage.getItem("videoTime_" + videoId);
-    if (savedTime) {
-      player.seekTo(parseFloat(savedTime), true);
-    }
-
+    if (savedTime) player.seekTo(parseFloat(savedTime), true);
     setInterval(() => {
       if (player && player.getCurrentTime) {
         localStorage.setItem("videoTime_" + videoId, player.getCurrentTime());
       }
     }, 5000);
-
     document.getElementById("playPause").addEventListener("click", () => {
       isPlaying ? player.pauseVideo() : player.playVideo();
     });
-
     document.getElementById("rewind").addEventListener("click", () => {
       player.seekTo(player.getCurrentTime() - 10, true);
     });
-
     document.getElementById("forward").addEventListener("click", () => {
       player.seekTo(player.getCurrentTime() + 10, true);
     });
-
-    // ✅ FIX: prevent controls from hiding on fullscreen click
     document.getElementById("fullscreenBtn").addEventListener("click", (e) => {
       e.stopPropagation();
       if (!document.fullscreenElement) {
@@ -205,7 +192,6 @@
         document.exitFullscreen();
       }
     });
-
     wrapper.addEventListener("dblclick", () => {
       if (!document.fullscreenElement) {
         wrapper.requestFullscreen();
@@ -213,13 +199,10 @@
         document.exitFullscreen();
       }
     });
-
     wrapper.addEventListener("click", () => {
       toggleControls();
     });
-
     showControls();
-
     setInterval(() => {
       if (!player || !player.getDuration) return;
       const current = player.getCurrentTime();
@@ -229,7 +212,6 @@
       document.getElementById("currentTime").textContent = formatTime(current);
       document.getElementById("remainingTime").textContent = "-" + formatTime(total - current);
     }, 500);
-
     progressBar.addEventListener("click", (e) => {
       const rect = progressBar.getBoundingClientRect();
       const pct = (e.clientX - rect.left) / rect.width;
@@ -246,7 +228,6 @@
       isPlaying = false;
       playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
     }
-
     if (e.data === YT.PlayerState.ENDED) {
       localStorage.removeItem("videoTime_" + getVideoId());
     }
@@ -276,6 +257,5 @@
     return `${minutes}:${seconds}`;
   }
 </script>
-
 </body>
 </html>
