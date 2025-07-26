@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz in Progress</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .quiz-container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        #progress { font-size: 1.1em; font-weight: 600; color: #555; }
+        .question-area { margin-bottom: 25px; }
+        #question-text { font-size: 1.4em; line-height: 1.5; margin-bottom: 20px; }
+        #question-image { max-width: 100%; border-radius: 8px; margin-bottom: 20px; }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        .option {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+        }
+        .option img { max-width: 100%; display: block; margin: 0 auto; }
+        .option:hover { border-color: #4A90E2; }
+        .option.selected { border-color: #4A90E2; background-color: #e7f3ff; }
+        .option.correct { border-color: #28a745; background-color: #d4edda; }
+        .option.incorrect { border-color: #dc3545; background-color: #f8d7da; }
+        .option.disabled { cursor: not-allowed; opacity: 0.7; }
+
+        #next-btn {
+            background-color: #4A90E2;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            width: 100%;
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
+        #loader { text-align: center; font-size: 1.5em; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="quiz-container" id="quiz-container" style="display: none;">
+        <div class="quiz-header">
+            <div id="progress">Question 1 / 10</div>
+            <div id="score">Score: 0</div>
+        </div>
+        <div class="question-area">
+            <p id="question-text"></p>
+            <img id="question-image" src="" alt="Question Image" style="display: none;">
+        </div>
+        <div id="options-grid" class="options-grid"></div>
+        <button id="next-btn">Next Question</button>
+    </div>
+    <div id="loader">
+        <h2>Preparing your quiz...</h2>
+        <p>This may take a moment.</p>
+    </div>
+
+    <script>
+        // IMPORTANT: Replace with your actual Firebase config
+        const firebaseConfig = {
+          apiKey: "YOUR_API_KEY", // Replace this
+          authDomain: "custom-practices.firebaseapp.com",
+          projectId: "custom-practices",
+          databaseURL: "https://custom-practices-default-rtdb.firebaseio.com",
+          storageBucket: "custom-practices.firebasestorage.app",
+          messagingSenderId: "636700937539",
+          appId: "1:636700937539:web:d6ec9d88453e15481d33f6"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const classKey = urlParams.get('class');
+        const subject = urlParams.get('sub');
+        const chapter = decodeURIComponent(urlParams.get('chapter'));
+        const count = parseInt(urlParams.get('count'));
+
+        const loader = document.getElementById('loader');
+        const quizContainer = document.getElementById('quiz-container');
+        const progressText = document.getElementById('progress');
+        const scoreText = document.getElementById('score');
+        const questionText = document.getElementById('question-text');
+        const questionImage = document.getElementById('question-image');
+        const optionsGrid = document.getElementById('options-grid');
+        const nextBtn = document.getElementById('next-btn');
+
+        let allQuestions = [];
+        let quizQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userMistakes = [];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        async function fetchQuestions() {
+            if (!classKey || !subject || !chapter || !count) {
+                loader.innerHTML = "<h2>Invalid Quiz Parameters</h2><p>Please start over from the home page.</p>";
+                return;
+            }
+
+            const questionsRef = database.ref(`questions/${classKey}/${subject}/${chapter}`);
+            try {
+                const snapshot = await questionsRef.once('value');
+                const questionsData = snapshot.val();
+                if (!questionsData) {
+                     loader.innerHTML = "<h2>No Questions Found</h2><p>There are no questions available for this chapter yet.</p>";
+                     return;
+                }
+
+                allQuestions = Object.keys(questionsData).map(key => ({ id: key, ...questionsData[key] }));
+                shuffleArray(allQuestions);
+                quizQuestions = allQuestions.slice(0, count);
+
+                if (quizQuestions.length > 0) {
+                    startQuiz();
+                } else {
+                     loader.innerHTML = "<h2>Not Enough Questions</h2><p>There aren't enough questions to start this quiz.</p>";
+                }
+
+            } catch (error) {
+                console.error("Error fetching questions:", error);
+                loader.innerHTML = "<h2>Error</h2><p>Could not load questions. Please try again later.</p>";
+            }
+        }
+
+        function startQuiz() {
+            loader.style.display = 'none';
+            quizContainer.style.display = 'block';
+            displayQuestion();
+        }
+        
+        function displayQuestion() {
+            if (currentQuestionIndex >= quizQuestions.length) {
+                finishQuiz();
+                return;
+            }
+
+            const currentQuestion = quizQuestions[currentQuestionIndex];
+            progressText.textContent = `Question ${currentQuestionIndex + 1} / ${quizQuestions.length}`;
+            
+            // Display question
+            if (currentQuestion.questionType === 'image') {
+                questionText.style.display = 'none';
+                questionImage.src = currentQuestion.questionImage;
+                questionImage.style.display = 'block';
+            } else {
+                questionImage.style.display = 'none';
+                questionText.textContent = currentQuestion.questionText;
+                questionText.style.display = 'block';
+            }
+
+            // Display options
+            optionsGrid.innerHTML = '';
+            currentQuestion.options.forEach((option, index) => {
+                const optionEl = document.createElement('div');
+                optionEl.classList.add('option');
+                optionEl.dataset.index = index;
+
+                if (option.type === 'image') {
+                    optionEl.innerHTML = `<img src="${option.image}" alt="Option ${index + 1}">`;
+                } else {
+                    optionEl.textContent = option.text;
+                }
+                optionEl.addEventListener('click', selectOption);
+                optionsGrid.appendChild(optionEl);
+            });
+            nextBtn.style.display = 'none';
+        }
+
+        function selectOption(e) {
+            const selectedOption = e.currentTarget;
+            const selectedIndex = parseInt(selectedOption.dataset.index);
+            const correctIndex = quizQuestions[currentQuestionIndex].correctAnswerIndex;
+
+            Array.from(optionsGrid.children).forEach(opt => {
+                opt.classList.add('disabled');
+                opt.removeEventListener('click', selectOption);
+            });
+
+            if (selectedIndex === correctIndex) {
+                selectedOption.classList.add('correct');
+                score++;
+                scoreText.textContent = `Score: ${score}`;
+            } else {
+                selectedOption.classList.add('incorrect');
+                optionsGrid.children[correctIndex].classList.add('correct');
+                // Store mistake
+                userMistakes.push({
+                    chapter: chapter,
+                    ...quizQuestions[currentQuestionIndex]
+                });
+            }
+            
+            nextBtn.style.display = 'block';
+        }
+
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            displayQuestion();
+        });
+
+        function finishQuiz() {
+            // Save mistakes to local storage
+            let existingMistakes = JSON.parse(localStorage.getItem('userMistakes')) || [];
+            localStorage.setItem('userMistakes', JSON.stringify([...existingMistakes, ...userMistakes]));
+            
+            // Redirect to results page
+            window.location.href = `5.html?score=${score}&total=${quizQuestions.length}`;
+        }
+
+        fetchQuestions();
+    </script>
+</body>
+</html>
