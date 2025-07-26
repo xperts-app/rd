@@ -155,7 +155,6 @@
                 loaderEl.innerHTML = `<div class="error-message">Error: Missing required URL parameters.</div>`; return;
             }
 
-            // Set basic UI elements first
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) body.classList.add(themeClass);
             const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
@@ -163,27 +162,22 @@
             classDetailsEl.textContent = `Class ${className.replace(/%20/g, ' ')} • ${displaySubjectName}`;
 
             try {
-                // --- CORRECTED AND FINAL LOGIC ---
-                // Create promises for both Firestore requests
                 const docId = createDocId(className, subjectKey, chapterName);
                 const imagePromise = db.collection('chapter_metadata').doc(docId).get();
                 const contentPromise = db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).where('chapter', '==', chapterName).get();
 
-                // Wait for BOTH promises to complete
-                const [imageDoc, contentSnapshot] = await Promise.all([imagePromise, contentPromise]);
+                const [imageDocSnap, contentSnapshot] = await Promise.all([imagePromise, contentPromise]);
 
-                // 1. Determine the final image URL
-                let finalImageUrl = imageUrlMap[subjectKey.toUpperCase()] || ''; // Start with default
-                if (imageDoc.exists() && imageDoc.data().headerImageUrl) {
-                    finalImageUrl = imageDoc.data().headerImageUrl; // Override with custom image if it exists
+                let finalImageUrl = imageUrlMap[subjectKey.toUpperCase()] || ''; 
+                // --- THIS IS THE CORRECTED LINE ---
+                if (imageDocSnap.exists && imageDocSnap.data().headerImageUrl) {
+                    finalImageUrl = imageDocSnap.data().headerImageUrl;
                 }
 
-                // 2. Set the header background image
                 if (finalImageUrl) {
                     chapterHeaderEl.style.backgroundImage = `url('${finalImageUrl}')`;
                 }
                 
-                // 3. Process and render the content list
                 const videos = [], pdfs = [];
                 contentSnapshot.forEach(doc => { const data = doc.data(); if (data.contentType === 'video') videos.push(data); else if (data.contentType === 'pdf') pdfs.push(data); });
                 loaderEl.style.display = 'none';
