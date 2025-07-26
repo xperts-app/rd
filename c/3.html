@@ -155,43 +155,43 @@
                 loaderEl.innerHTML = `<div class="error-message">Error: Missing required URL parameters.</div>`; return;
             }
 
+            // Set basic UI elements first
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) body.classList.add(themeClass);
-            
-            // --- CORRECTED AND FINAL LOGIC ---
-            // This variable will hold the final image URL for BOTH the header and thumbnails.
-            let finalImageUrl = imageUrlMap[subjectKey.toUpperCase()] || ''; // Start with the default subject image.
-
-            const docId = createDocId(className, subjectKey, chapterName);
-            const docRef = db.collection('chapter_metadata').doc(docId);
-            try {
-                const docSnap = await docRef.get();
-                // If a custom image exists, it OVERRIDES the default.
-                if (docSnap.exists() && docSnap.data().headerImageUrl) {
-                    finalImageUrl = docSnap.data().headerImageUrl;
-                }
-            } catch (error) {
-                 console.error("Error fetching custom header image:", error);
-            }
-            // Now, set the header background with the determined final image URL.
-            if (finalImageUrl) {
-                chapterHeaderEl.style.backgroundImage = `url('${finalImageUrl}')`;
-            }
-
             const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
             chapterTitleEl.textContent = chapterName;
             classDetailsEl.textContent = `Class ${className.replace(/%20/g, ' ')} • ${displaySubjectName}`;
 
             try {
-                const querySnapshot = await db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).where('chapter', '==', chapterName).get();
+                // --- CORRECTED AND FINAL LOGIC ---
+                // Create promises for both Firestore requests
+                const docId = createDocId(className, subjectKey, chapterName);
+                const imagePromise = db.collection('chapter_metadata').doc(docId).get();
+                const contentPromise = db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).where('chapter', '==', chapterName).get();
+
+                // Wait for BOTH promises to complete
+                const [imageDoc, contentSnapshot] = await Promise.all([imagePromise, contentPromise]);
+
+                // 1. Determine the final image URL
+                let finalImageUrl = imageUrlMap[subjectKey.toUpperCase()] || ''; // Start with default
+                if (imageDoc.exists() && imageDoc.data().headerImageUrl) {
+                    finalImageUrl = imageDoc.data().headerImageUrl; // Override with custom image if it exists
+                }
+
+                // 2. Set the header background image
+                if (finalImageUrl) {
+                    chapterHeaderEl.style.backgroundImage = `url('${finalImageUrl}')`;
+                }
+                
+                // 3. Process and render the content list
                 const videos = [], pdfs = [];
-                querySnapshot.forEach(doc => { const data = doc.data(); if (data.contentType === 'video') videos.push(data); else if (data.contentType === 'pdf') pdfs.push(data); });
+                contentSnapshot.forEach(doc => { const data = doc.data(); if (data.contentType === 'video') videos.push(data); else if (data.contentType === 'pdf') pdfs.push(data); });
                 loaderEl.style.display = 'none';
                 
                 if (videos.length > 0) {
                     videoListEl.innerHTML = videos.map(item => {
                         const playerUrl = `https://xperts-app.github.io/rd/p/?video=${encodeURIComponent(item.url)}`;
-                        const videoData = { title: item.title, url: item.url, chapter: chapterName, class: className, subject: subjectKey, progress: Math.floor(Math.random() * (90 - 10 + 1)) + 10 };
+                        const videoData = { title: item.title, url: item.url, chapter: chapterName, class: className, subject: subjectKey, progress: Math.floor(Math.random() * 90) + 10 };
                         const escapedVideoData = JSON.stringify(videoData).replace(/'/g, "\\'");
                         return `
                         <li>
