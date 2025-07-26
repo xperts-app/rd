@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Viewer</title>
+    <!-- Google Fonts for a modern look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --accent-color: #6d6d6d; --text-primary: #1a202c; --text-secondary: #718096;
-            --border-color: #e2e8f0; --card-bg: #ffffff; --body-bg: #f7fafc;
+            --accent-color: #6d6d6d;
+            --text-primary: #1a202c;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --body-bg: #f7fafc;
         }
         .theme-bio, .theme-botany, .theme-zoology { --accent-color: #10B981; }
         .theme-eng { --accent-color: #EF4444; }
@@ -131,6 +136,11 @@
             'MATH': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10', 'CHEM': 'https://plus.unsplash.com/premium_photo-1681426678542-613c306013e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2hlbWlzdHJ5fGVufDB8fDB8fHww',
             'SST': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1z5kXMKG22tkvaFs1GoUr0F_jgV6vPSwy8462fkZ5Oq2WtLT1PwtPqdlg&s=10'
         };
+        
+        const createDocId = (className, subjectName, chapterName) => {
+            const clean = (str) => str.toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            return `${clean(className)}_${clean(subjectName)}_${clean(chapterName)}`;
+        };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const body = document.body, chapterHeaderEl = document.getElementById('chapter-header'), chapterTitleEl = document.getElementById('chapter-title'),
@@ -148,51 +158,61 @@
             const themeClass = themeMap[subjectKey.toUpperCase()];
             if (themeClass) body.classList.add(themeClass);
             
+            // --- CORRECTED AND FINAL LOGIC ---
+            // This variable will hold the final image URL for BOTH the header and thumbnails.
+            let finalImageUrl = imageUrlMap[subjectKey.toUpperCase()] || ''; // Start with the default subject image.
+
+            const docId = createDocId(className, subjectKey, chapterName);
+            const docRef = db.collection('chapter_metadata').doc(docId);
+            try {
+                const docSnap = await docRef.get();
+                // If a custom image exists, it OVERRIDES the default.
+                if (docSnap.exists() && docSnap.data().headerImageUrl) {
+                    finalImageUrl = docSnap.data().headerImageUrl;
+                }
+            } catch (error) {
+                 console.error("Error fetching custom header image:", error);
+            }
+            // Now, set the header background with the determined final image URL.
+            if (finalImageUrl) {
+                chapterHeaderEl.style.backgroundImage = `url('${finalImageUrl}')`;
+            }
+
             const displaySubjectName = fullNameMap[subjectKey.toUpperCase()] || subjectKey;
             chapterTitleEl.textContent = chapterName;
             classDetailsEl.textContent = `Class ${className.replace(/%20/g, ' ')} • ${displaySubjectName}`;
 
             try {
                 const querySnapshot = await db.collection('content').where('class', '==', className).where('subject', '==', subjectKey).where('chapter', '==', chapterName).get();
-                loaderEl.style.display = 'none';
-
-                if (querySnapshot.empty) {
-                    videosSection.innerHTML += '<p>No content found for this chapter.</p>';
-                    notesSection.innerHTML += '<p></p>'; // To keep layout consistent
-                    videosSection.classList.add('active');
-                    // Set fallback header image even if no content
-                    const defaultHeaderImageUrl = imageUrlMap[subjectKey.toUpperCase()];
-                    if (defaultHeaderImageUrl) chapterHeaderEl.style.backgroundImage = `url('${defaultHeaderImageUrl}')`;
-                    return;
-                }
-
-                // --- CORRECTED LOGIC TO SET HEADER IMAGE ---
-                const firstDocData = querySnapshot.docs[0].data();
-                if (firstDocData.headerImageUrl) {
-                    // Use the custom URL if it exists on the content item
-                    chapterHeaderEl.style.backgroundImage = `url('${firstDocData.headerImageUrl}')`;
-                } else {
-                    // Otherwise, fall back to the default subject image
-                    const defaultHeaderImageUrl = imageUrlMap[subjectKey.toUpperCase()];
-                    if (defaultHeaderImageUrl) chapterHeaderEl.style.backgroundImage = `url('${defaultHeaderImageUrl}')`;
-                }
-
                 const videos = [], pdfs = [];
                 querySnapshot.forEach(doc => { const data = doc.data(); if (data.contentType === 'video') videos.push(data); else if (data.contentType === 'pdf') pdfs.push(data); });
+                loaderEl.style.display = 'none';
                 
-                const videoThumbUrl = imageUrlMap[subjectKey.toUpperCase()] || '';
-
                 if (videos.length > 0) {
                     videoListEl.innerHTML = videos.map(item => {
                         const playerUrl = `https://xperts-app.github.io/rd/p/?video=${encodeURIComponent(item.url)}`;
                         const videoData = { title: item.title, url: item.url, chapter: chapterName, class: className, subject: subjectKey, progress: Math.floor(Math.random() * (90 - 10 + 1)) + 10 };
                         const escapedVideoData = JSON.stringify(videoData).replace(/'/g, "\\'");
-                        return `<li><a href="${playerUrl}" class="content-item" onclick='saveToContinueWatching(${escapedVideoData})'><div class="item-thumbnail">${videoThumbUrl ? `<img src="${videoThumbUrl}" alt="Video thumbnail" class="thumbnail-img">` : `<span class="thumbnail-icon">►</span>`}</div><div class="item-details"><p class="item-title">${item.title}</p></div><div class="item-action"><span class="download-icon">↓</span></div></a></li>`;
+                        return `
+                        <li>
+                            <a href="${playerUrl}" class="content-item" onclick='saveToContinueWatching(${escapedVideoData})'>
+                                <div class="item-thumbnail">${finalImageUrl ? `<img src="${finalImageUrl}" alt="Video thumbnail" class="thumbnail-img">` : `<span class="thumbnail-icon">►</span>`}</div>
+                                <div class="item-details"><p class="item-title">${item.title}</p></div>
+                                <div class="item-action"><span class="download-icon">↓</span></div>
+                            </a>
+                        </li>`;
                     }).join('');
                 } else { videosSection.innerHTML += '<p>No videos found for this chapter.</p>'; }
 
                 if (pdfs.length > 0) {
-                    pdfListEl.innerHTML = pdfs.map(item => `<li><a href="${item.url}" target="_blank" class="content-item"><div class="item-thumbnail" style="background-color: var(--text-secondary);"><span class="thumbnail-icon"></span></div><div class="item-details"><p class="item-title">${item.title}</p></div><div class="item-action"><span class="download-icon">↓</span></div></a></li>`).join('');
+                    pdfListEl.innerHTML = pdfs.map(item => `
+                        <li>
+                            <a href="${item.url}" target="_blank" class="content-item">
+                                <div class="item-thumbnail" style="background-color: var(--text-secondary);"><span class="thumbnail-icon"></span></div>
+                                <div class="item-details"><p class="item-title">${item.title}</p></div>
+                                <div class="item-action"><span class="download-icon">↓</span></div>
+                            </a>
+                        </li>`).join('');
                 } else { notesSection.innerHTML += '<p>No notes found for this chapter.</p>'; }
                 
                 videosSection.classList.add('active');
@@ -214,4 +234,4 @@
         }
     </script>
 </body>
-</html>```
+</html>
