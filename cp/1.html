@@ -4,371 +4,347 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Add Question</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f0f2f5;
             color: #333;
-            display: flex;
-            justify-content: center;
+            margin: 0;
             padding: 20px;
         }
         .container {
-            width: 100%;
             max-width: 800px;
-            background: #fff;
+            margin: 0 auto;
+            background: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        h1 { color: #4A90E2; text-align: center; }
+        h1 { color: #d93025; }
         .form-group { margin-bottom: 20px; }
-        label { display: block; font-weight: 600; margin-bottom: 8px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; color: #5f6368; }
         input[type="text"], input[type="url"], select, textarea {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
             box-sizing: border-box;
-            font-size: 1em;
+            font-size: 16px;
         }
-        textarea { min-height: 100px; resize: vertical; }
+        textarea { resize: vertical; min-height: 100px; }
+        .radio-group label { display: inline-block; margin-right: 15px; }
+        .option-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;}
+        .option-group input[type="radio"] { width: auto; }
         button {
-            background-color: #4A90E2;
-            color: white;
-            padding: 12px 20px;
+            padding: 12px 25px;
             border: none;
             border-radius: 6px;
+            background-color: #d93025;
+            color: white;
+            font-size: 16px;
             cursor: pointer;
-            font-size: 1.1em;
-            width: 100%;
             transition: background-color 0.3s;
         }
-        button:hover { background-color: #357ABD; }
-        .radio-group label { display: inline-block; margin-right: 15px; }
-        .option-group { border: 1px solid #e0e0e0; padding: 15px; border-radius: 6px; margin-bottom: 10px; }
-        #newChapterGroup { display: none; margin-top: 10px; }
-        #status { text-align: center; font-weight: bold; margin-top: 20px; padding: 10px; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
+        button:hover { background-color: #a52714; }
+        .hidden { display: none; }
+        #status-message { margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 5px; }
+        .success { background-color: #e6f4ea; color: #1e8e3e; }
+        .error { background-color: #fce8e6; color: #d93025; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Add a New Question</h1>
-    <form id="questionForm">
+    <h1>Admin: Add New Question</h1>
+    <form id="question-form">
         <!-- Class and Subject -->
         <div class="form-group">
-            <label for="classSelect">Class</label>
-            <select id="classSelect" required>
-                <option value="">-- Select a Class --</option>
+            <label for="class-select">Class</label>
+            <select id="class-select" required>
+                <option value="" disabled selected>-- Choose a Class --</option>
+                <option value="6">Class 6</option>
+                <option value="7">Class 7</option>
+                <option value="8">Class 8</option>
+                <option value="9">Class 9</option>
+                <option value="10">Class 10</option>
+                <option value="11-JEE">Class 11 (JEE)</option>
+                <option value="11-NEET">Class 11 (NEET)</option>
+                <option value="12-JEE">Class 12 (JEE)</option>
+                <option value="12-NEET">Class 12 (NEET)</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="subjectSelect">Subject</label>
-            <select id="subjectSelect" required>
-                <option value="">-- Select a Subject --</option>
+            <label for="subject-select">Subject</label>
+            <select id="subject-select" required>
+                <option value="" disabled selected>-- Select Class First --</option>
             </select>
         </div>
 
         <!-- Chapter -->
         <div class="form-group">
-            <label for="chapterSelect">Chapter</label>
-            <select id="chapterSelect" required>
-                <option value="">-- Select or Add Chapter --</option>
+            <label for="chapter-select">Chapter (Select Existing or Add New)</label>
+            <select id="chapter-select">
+                <option value="">-- Select Existing Chapter --</option>
             </select>
-            <div id="newChapterGroup">
-                <label for="newChapterInput">New Chapter Name:</label>
-                <input type="text" id="newChapterInput" placeholder="e.g., Kinematics">
-            </div>
+            <input type="text" id="new-chapter-input" placeholder="Or, type a new chapter name here">
         </div>
 
-        <!-- Question -->
+        <!-- Question Type -->
         <div class="form-group">
-            <label>Question Type</label>
+            <label>Question is:</label>
             <div class="radio-group">
-                <label><input type="radio" name="questionType" value="text" checked> Text</label>
-                <label><input type="radio" name="questionType" value="image"> Image</label>
+                <label><input type="radio" name="question-type" value="text" checked> Text</label>
+                <label><input type="radio" name="question-type" value="image"> Image</label>
             </div>
-            <textarea id="questionText" placeholder="Enter the question text here..."></textarea>
-            <input type="url" id="questionImage" placeholder="Enter image URL..." style="display:none;">
+        </div>
+        <div class="form-group" id="question-text-group">
+            <label for="question-text">Question Text</label>
+            <textarea id="question-text" rows="4"></textarea>
+        </div>
+        <div class="form-group hidden" id="question-image-group">
+            <label for="question-image-url">Question Image URL</label>
+            <input type="url" id="question-image-url" placeholder="https://example.com/image.png">
         </div>
 
         <!-- Options -->
-        <div class="form-group" id="optionsContainer">
-            <label>Options</label>
-            <!-- Options will be added dynamically here -->
+        <div class="form-group">
+            <label>Options are:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="option-type" value="text" checked> Text</label>
+                <label><input type="radio" name="option-type" value="image"> Image</label>
+            </div>
         </div>
-        <button type="button" id="addOptionBtn" style="width: auto; padding: 8px 15px; margin-bottom: 20px; background-color: #6c757d;">+ Add Option</button>
+        <div id="options-container">
+            <!-- Options will be generated here -->
+        </div>
 
         <!-- Correct Answer -->
         <div class="form-group">
-            <label for="correctAnswerSelect">Correct Answer</label>
-            <select id="correctAnswerSelect" required>
-                <option value="">-- Select Correct Option --</option>
+            <label>Correct Answer</label>
+            <select id="correct-answer-select" required>
+                <option value="0">Option A</option>
+                <option value="1">Option B</option>
+                <option value="2">Option C</option>
+                <option value="3">Option D</option>
             </select>
         </div>
-
+        
         <!-- Solution -->
-         <div class="form-group">
-            <label>Solution Type</label>
-            <div class="radio-group">
-                <label><input type="radio" name="solutionType" value="text" checked> Text</label>
-                <label><input type="radio" name="solutionType" value="image"> Image</label>
-            </div>
-            <textarea id="solutionText" placeholder="Enter the detailed solution here..."></textarea>
-            <input type="url" id="solutionImage" placeholder="Enter solution image URL..." style="display:none;">
+        <div class="form-group">
+            <label for="detailed-solution">Detailed Solution</label>
+            <textarea id="detailed-solution" rows="4"></textarea>
         </div>
 
         <button type="submit">Save Question</button>
+        <div id="status-message"></div>
     </form>
-    <div id="status"></div>
 </div>
 
+<!-- Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
 <script>
-    // IMPORTANT: Replace with your actual Firebase config
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY", // Replace this
-      authDomain: "custom-practices.firebaseapp.com",
-      projectId: "custom-practices",
-      databaseURL: "https://custom-practices-default-rtdb.firebaseio.com", // Make sure this is correct
-      storageBucket: "custom-practices.firebasestorage.app",
-      messagingSenderId: "636700937539",
-      appId: "1:636700937539:web:d6ec9d88453e15481d33f6"
+        apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs",
+        authDomain: "custom-practices.firebaseapp.com",
+        projectId: "custom-practices",
+        storageBucket: "custom-practices.firebasestorage.app",
+        messagingSenderId: "636700937539",
+        appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
+        measurementId: "G-JL58DMTZ0W"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    const classSubjectMap = {
-        'class_6': { name: 'Class 6', subjects: ['Physics', 'Chemistry', 'Math', 'English', 'Social Science', 'Biology'] },
-        'class_7': { name: 'Class 7', subjects: ['Physics', 'Chemistry', 'Math', 'English', 'Social Science', 'Biology'] },
-        'class_8': { name: 'Class 8', subjects: ['Physics', 'Chemistry', 'Math', 'English', 'Social Science', 'Biology'] },
-        'class_9': { name: 'Class 9', subjects: ['Physics', 'Chemistry', 'Math', 'English', 'Social Science', 'Biology'] },
-        'class_10': { name: 'Class 10', subjects: ['Physics', 'Chemistry', 'Math', 'English', 'Social Science', 'Biology'] },
-        'class_11_JEE': { name: '11 JEE', subjects: ['Math', 'Physics', 'Chemistry'] },
-        'class_11_NEET': { name: '11 NEET', subjects: ['Botany', 'Physics', 'Zoology', 'Chemistry'] },
-        'class_12_JEE': { name: '12 JEE', subjects: ['Math', 'Physics', 'Chemistry'] },
-        'class_12_NEET': { name: '12 NEET', subjects: ['Botany', 'Physics', 'Zoology', 'Chemistry'] }
-    };
-    
     // DOM Elements
-    const classSelect = document.getElementById('classSelect');
-    const subjectSelect = document.getElementById('subjectSelect');
-    const chapterSelect = document.getElementById('chapterSelect');
-    const newChapterGroup = document.getElementById('newChapterGroup');
-    const newChapterInput = document.getElementById('newChapterInput');
-    const optionsContainer = document.getElementById('optionsContainer');
-    const addOptionBtn = document.getElementById('addOptionBtn');
-    const correctAnswerSelect = document.getElementById('correctAnswerSelect');
-    const form = document.getElementById('questionForm');
-    const statusDiv = document.getElementById('status');
-    
-    // Populate Class Select
-    for (const key in classSubjectMap) {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = classSubjectMap[key].name;
-        classSelect.appendChild(option);
-    }
+    const classSelect = document.getElementById('class-select');
+    const subjectSelect = document.getElementById('subject-select');
+    const chapterSelect = document.getElementById('chapter-select');
+    const newChapterInput = document.getElementById('new-chapter-input');
+    const questionForm = document.getElementById('question-form');
+    const statusMessage = document.getElementById('status-message');
 
-    // Event Listeners
-    classSelect.addEventListener('change', (e) => {
-        const classKey = e.target.value;
-        subjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>';
-        chapterSelect.innerHTML = '<option value="">-- Select or Add Chapter --</option>';
-        if (classKey) {
-            const subjects = classSubjectMap[classKey].subjects;
-            subjects.forEach(sub => {
-                const option = document.createElement('option');
-                option.value = sub;
-                option.textContent = sub;
-                subjectSelect.appendChild(option);
-            });
+    const subjectsMap = {
+        '6-10': ['Physics', 'Chemistry', 'Math', 'English', 'Social Science', 'Biology'],
+        'JEE': ['Math', 'Physics', 'Chemistry'],
+        'NEET': ['Botany', 'Physics', 'Zoology', 'Chemistry']
+    };
+
+    // Dynamic Subject Dropdown
+    classSelect.addEventListener('change', () => {
+        const selectedClass = classSelect.value;
+        subjectSelect.innerHTML = '<option value="" disabled selected>-- Choose a Subject --</option>';
+        chapterSelect.innerHTML = '<option value="">-- Select Existing Chapter --</option>';
+        newChapterInput.value = '';
+
+        let subjectList = [];
+        if (['6', '7', '8', '9', '10'].includes(selectedClass)) {
+            subjectList = subjectsMap['6-10'];
+        } else if (selectedClass.includes('JEE')) {
+            subjectList = subjectsMap['JEE'];
+        } else if (selectedClass.includes('NEET')) {
+            subjectList = subjectsMap['NEET'];
         }
-    });
 
-    subjectSelect.addEventListener('change', (e) => {
-        const classKey = classSelect.value;
-        const subject = e.target.value;
-        chapterSelect.innerHTML = '<option value="">-- Loading Chapters... --</option>';
-        if (classKey && subject) {
-            fetchChapters(classKey, subject);
-        }
-    });
-
-    chapterSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'add_new') {
-            newChapterGroup.style.display = 'block';
-            newChapterInput.required = true;
-        } else {
-            newChapterGroup.style.display = 'none';
-            newChapterInput.required = false;
-        }
-    });
-
-    document.querySelectorAll('input[name="questionType"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            document.getElementById('questionText').style.display = (e.target.value === 'text') ? 'block' : 'none';
-            document.getElementById('questionImage').style.display = (e.target.value === 'image') ? 'block' : 'none';
-        });
-    });
-
-    document.querySelectorAll('input[name="solutionType"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            document.getElementById('solutionText').style.display = (e.target.value === 'text') ? 'block' : 'none';
-            document.getElementById('solutionImage').style.display = (e.target.value === 'image') ? 'block' : 'none';
-        });
-    });
-
-    addOptionBtn.addEventListener('click', () => {
-        const optionIndex = optionsContainer.children.length;
-        createOptionInput(optionIndex);
-        updateCorrectAnswerSelect();
-    });
-
-    form.addEventListener('submit', saveQuestion);
-
-    // Functions
-    function fetchChapters(classKey, subject) {
-        const chapterRef = database.ref(`chapters/${classKey}/${subject}`);
-        chapterRef.once('value', (snapshot) => {
-            chapterSelect.innerHTML = '<option value="">-- Select a Chapter --</option>';
-            const chapters = snapshot.val();
-            if (chapters) {
-                chapters.forEach(chap => {
-                    const option = document.createElement('option');
-                    option.value = chap;
-                    option.textContent = chap;
-                    chapterSelect.appendChild(option);
-                });
-            }
-            const addNewOption = document.createElement('option');
-            addNewOption.value = 'add_new';
-            addNewOption.textContent = '-- Add a New Chapter --';
-            chapterSelect.appendChild(addNewOption);
-        });
-    }
-    
-    function createOptionInput(index) {
-        const optionDiv = document.createElement('div');
-        optionDiv.className = 'option-group';
-        optionDiv.innerHTML = `
-            <strong>Option ${index + 1}</strong>
-            <div class="radio-group">
-                <label><input type="radio" name="optionType_${index}" value="text" checked> Text</label>
-                <label><input type="radio" name="optionType_${index}" value="image"> Image</label>
-            </div>
-            <textarea class="option-text" placeholder="Option ${index + 1} text"></textarea>
-            <input type="url" class="option-image" placeholder="Option ${index + 1} image URL" style="display:none;">
-        `;
-        optionsContainer.appendChild(optionDiv);
-
-        optionDiv.querySelectorAll(`input[name="optionType_${index}"]`).forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                optionDiv.querySelector('.option-text').style.display = (e.target.value === 'text') ? 'block' : 'none';
-                optionDiv.querySelector('.option-image').style.display = (e.target.value === 'image') ? 'block' : 'none';
-            });
-        });
-    }
-
-    function updateCorrectAnswerSelect() {
-        correctAnswerSelect.innerHTML = '<option value="">-- Select Correct Option --</option>';
-        const optionCount = optionsContainer.children.length;
-        for (let i = 0; i < optionCount; i++) {
+        subjectList.forEach(subject => {
             const option = document.createElement('option');
-            option.value = i;
-            option.textContent = `Option ${i + 1}`;
-            correctAnswerSelect.appendChild(option);
+            option.value = subject;
+            option.textContent = subject;
+            subjectSelect.appendChild(option);
+        });
+    });
+
+    // Dynamic Chapter Dropdown
+    async function loadChapters() {
+        const selectedClass = classSelect.value;
+        const selectedSubject = subjectSelect.value;
+        
+        if (!selectedClass || !selectedSubject) return;
+
+        chapterSelect.innerHTML = '<option value="">-- Loading Chapters... --</option>';
+        
+        try {
+            const querySnapshot = await db.collection('questions')
+                .where('class', '==', selectedClass)
+                .where('subject', '==', selectedSubject)
+                .get();
+            
+            const chapters = new Set();
+            querySnapshot.forEach(doc => {
+                chapters.add(doc.data().chapter);
+            });
+            
+            chapterSelect.innerHTML = '<option value="">-- Select Existing Chapter --</option>';
+            chapters.forEach(chapter => {
+                const option = document.createElement('option');
+                option.value = chapter;
+                option.textContent = chapter;
+                chapterSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error loading chapters: ", error);
+            chapterSelect.innerHTML = '<option value="">-- Error Loading --</option>';
         }
     }
 
-    async function saveQuestion(e) {
+    subjectSelect.addEventListener('change', loadChapters);
+
+    // Toggle Question Type
+    document.querySelectorAll('input[name="question-type"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const isImage = e.target.value === 'image';
+            document.getElementById('question-text-group').classList.toggle('hidden', isImage);
+            document.getElementById('question-image-group').classList.toggle('hidden', !isImage);
+        });
+    });
+
+    // Toggle Option Type and Render Options
+    const optionsContainer = document.getElementById('options-container');
+    function renderOptions(type = 'text') {
+        optionsContainer.innerHTML = '';
+        const optionLabels = ['A', 'B', 'C', 'D'];
+        for (let i = 0; i < 4; i++) {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            if (type === 'text') {
+                div.innerHTML = `
+                    <label for="option-text-${i}">Option ${optionLabels[i]}</label>
+                    <textarea id="option-text-${i}" rows="2" class="option-input"></textarea>
+                `;
+            } else { // image
+                div.innerHTML = `
+                    <label for="option-image-${i}">Option ${optionLabels[i]} Image URL</label>
+                    <input type="url" id="option-image-${i}" class="option-input" placeholder="https://example.com/option${i}.png">
+                `;
+            }
+            optionsContainer.appendChild(div);
+        }
+    }
+    
+    document.querySelectorAll('input[name="option-type"]').forEach(radio => {
+        radio.addEventListener('change', (e) => renderOptions(e.target.value));
+    });
+
+    // Initial render
+    renderOptions();
+
+    // Form Submission
+    questionForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        statusDiv.textContent = 'Saving...';
-        statusDiv.className = '';
-
+        statusMessage.textContent = 'Saving...';
+        statusMessage.className = 'status-message';
+        
         try {
-            const classKey = classSelect.value;
-            const subject = subjectSelect.value;
-            let chapter = chapterSelect.value;
-
-            // Handle new chapter
-            if (chapter === 'add_new') {
-                chapter = newChapterInput.value.trim();
-                if (!chapter) throw new Error("New chapter name cannot be empty.");
-                // Save new chapter to the chapters list
-                const chapterRef = database.ref(`chapters/${classKey}/${subject}`);
-                const snapshot = await chapterRef.once('value');
-                const chapters = snapshot.val() || [];
-                if (!chapters.includes(chapter)) {
-                    chapters.push(chapter);
-                    await chapterRef.set(chapters);
-                }
+            // 1. Get Chapter
+            let chapter = newChapterInput.value.trim() || chapterSelect.value;
+            if (!chapter) {
+                throw new Error("Chapter is required. Please select an existing one or add a new one.");
             }
 
-            // Construct question object
-            const questionData = {
-                questionType: document.querySelector('input[name="questionType"]:checked').value,
-                questionText: document.getElementById('questionText').value,
-                questionImage: document.getElementById('questionImage').value,
-                options: [],
-                correctAnswerIndex: parseInt(correctAnswerSelect.value),
-                solutionType: document.querySelector('input[name="solutionType"]:checked').value,
-                solutionText: document.getElementById('solutionText').value,
-                solutionImage: document.getElementById('solutionImage').value,
-                createdAt: firebase.database.ServerValue.TIMESTAMP
+            // 2. Get Question
+            const questionType = document.querySelector('input[name="question-type"]:checked').value;
+            const question = {
+                type: questionType,
+                text: questionType === 'text' ? document.getElementById('question-text').value : '',
+                imageUrl: questionType === 'image' ? document.getElementById('question-image-url').value : ''
             };
 
-            const optionElements = optionsContainer.children;
-            for (let i = 0; i < optionElements.length; i++) {
-                const optionType = optionElements[i].querySelector(`input[name="optionType_${i}"]:checked`).value;
-                const option = {
+            // 3. Get Options
+            const optionType = document.querySelector('input[name="option-type"]:checked').value;
+            const options = [];
+            document.querySelectorAll('.option-input').forEach(input => {
+                options.push(input.value);
+            });
+
+            // 4. Construct data object
+            const questionData = {
+                class: classSelect.value,
+                subject: subjectSelect.value,
+                chapter: chapter,
+                question: question,
+                options: {
                     type: optionType,
-                    text: (optionType === 'text') ? optionElements[i].querySelector('.option-text').value : '',
-                    image: (optionType === 'image') ? optionElements[i].querySelector('.option-image').value : ''
-                };
-                questionData.options.push(option);
+                    data: options
+                },
+                correctAnswer: parseInt(document.getElementById('correct-answer-select').value, 10),
+                solution: document.getElementById('detailed-solution').value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // 5. Validate
+             if (!questionData.class || !questionData.subject || !questionData.chapter) {
+                throw new Error("Class, Subject, and Chapter must be selected.");
+            }
+            if ((question.type === 'text' && !question.text) || (question.type === 'image' && !question.imageUrl)) {
+                throw new Error("Question content is missing.");
+            }
+            if(questionData.options.data.some(opt => !opt.trim())) {
+                throw new Error("All four options must be filled out.");
             }
 
-            // Validate
-            if (!classKey || !subject || !chapter || correctAnswerSelect.value === '') throw new Error("Please fill all required fields.");
-
-            // Save to Firebase
-            const questionListRef = database.ref(`questions/${classKey}/${subject}/${chapter}`);
-            await questionListRef.push(questionData);
+            // 6. Save to Firestore
+            await db.collection('questions').add(questionData);
             
-            statusDiv.textContent = 'Question saved successfully!';
-            statusDiv.className = 'success';
-            form.reset();
-            // Reset dynamic fields
-            optionsContainer.innerHTML = '';
-            createOptionInput(0);
-            createOptionInput(1);
-            createOptionInput(2);
-            createOptionInput(3);
-            updateCorrectAnswerSelect();
+            statusMessage.textContent = 'Question saved successfully!';
+            statusMessage.className = 'status-message success';
+            questionForm.reset();
+            // Reset dynamic fields manually
+            subjectSelect.innerHTML = '<option value="" disabled selected>-- Select Class First --</option>';
+            chapterSelect.innerHTML = '<option value="">-- Select Existing Chapter --</option>';
+            renderOptions();
+
 
         } catch (error) {
-            console.error("Error saving question:", error);
-            statusDiv.textContent = `Error: ${error.message}`;
-            statusDiv.className = 'error';
+            console.error("Error saving question: ", error);
+            statusMessage.textContent = `Error: ${error.message}`;
+            statusMessage.className = 'status-message error';
         }
-    }
-
-    // Initialize with 4 option fields
-    createOptionInput(0);
-    createOptionInput(1);
-    createOptionInput(2);
-    createOptionInput(3);
-    updateCorrectAnswerSelect();
-
+    });
 </script>
+
 </body>
 </html>
