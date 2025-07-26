@@ -3,123 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Chapter</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <title>Select a Chapter</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f0f2f5;
+            color: #333;
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
         }
         .container {
-            width: 100%;
-            max-width: 800px;
-            background: #fff;
+            max-width: 900px;
+            margin: 20px auto;
+            background: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        h1 { color: #4A90E2; }
-        #chapter-list {
-            margin-top: 30px;
+        h1 { color: #1a73e8; }
+        .breadcrumb { font-size: 1.2em; color: #5f6368; margin-bottom: 30px; }
+        .chapter-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
         }
-        .chapter-link {
-            display: block;
-            padding: 20px;
-            background: #f8f9fa;
-            border: 1px solid #ddd;
+        .chapter-card {
+            background-color: #e8f0fe;
+            color: #1967d2;
+            padding: 25px 20px;
             border-radius: 8px;
             text-decoration: none;
-            color: #333;
             font-size: 1.1em;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            font-weight: 600;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .chapter-link:hover {
-            background: #4A90E2;
-            color: white;
-            border-color: #4A90E2;
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        .chapter-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
-        #loading, #no-chapters { font-size: 1.2em; color: #888; margin-top: 40px; }
+        #loader, #no-chapters {
+            font-size: 1.2em;
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1 id="page-title">Loading...</h1>
-        <p>Choose a chapter to begin your practice session.</p>
-        <div id="chapter-list"></div>
-        <p id="loading">Loading chapters...</p>
-        <p id="no-chapters" style="display: none;">No chapters found for this selection. Please ask an admin to add some!</p>
+<div class="container">
+    <h1 id="page-title">Select a Chapter</h1>
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div id="chapter-grid" class="chapter-grid">
+        <!-- Chapters will be loaded here -->
     </div>
+    <div id="loader">Loading chapters...</div>
+    <div id="no-chapters" style="display:none;">No chapters found for this selection.</div>
+</div>
 
-    <script>
-        // IMPORTANT: Replace with your actual Firebase config
-        const firebaseConfig = {
-          apiKey: "YOUR_API_KEY", // Replace this
-          authDomain: "custom-practices.firebaseapp.com",
-          projectId: "custom-practices",
-          databaseURL: "https://custom-practices-default-rtdb.firebaseio.com",
-          storageBucket: "custom-practices.firebasestorage.app",
-          messagingSenderId: "636700937539",
-          appId: "1:636700937539:web:d6ec9d88453e15481d33f6"
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+<!-- Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs",
+        authDomain: "custom-practices.firebaseapp.com",
+        projectId: "custom-practices",
+        storageBucket: "custom-practices.firebasestorage.app",
+        messagingSenderId: "636700937539",
+        appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
+        measurementId: "G-JL58DMTZ0W"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    window.onload = async () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const classKey = urlParams.get('class');
-        const subject = urlParams.get('sub');
-
-        const classNames = {
-            'class_6': 'Class 6', 'class_7': 'Class 7', 'class_8': 'Class 8', 'class_9': 'Class 9', 'class_10': 'Class 10',
-            'class_11_JEE': '11 JEE', 'class_11_NEET': '11 NEET', 'class_12_JEE': '12 JEE', 'class_12_NEET': '12 NEET'
-        };
-
-        const pageTitle = document.getElementById('page-title');
-        const chapterList = document.getElementById('chapter-list');
-        const loadingMsg = document.getElementById('loading');
+        const selectedClass = urlParams.get('class');
+        const selectedSubject = urlParams.get('sub');
+        
+        const loader = document.getElementById('loader');
+        const chapterGrid = document.getElementById('chapter-grid');
         const noChaptersMsg = document.getElementById('no-chapters');
+        const breadcrumb = document.getElementById('breadcrumb');
 
-        if (classKey && subject) {
-            pageTitle.textContent = `${classNames[classKey] || 'Unknown Class'} - ${subject}`;
-            const chapterRef = database.ref(`chapters/${classKey}/${subject}`);
-            
-            chapterRef.once('value', (snapshot) => {
-                loadingMsg.style.display = 'none';
-                const chapters = snapshot.val();
-                if (chapters && chapters.length > 0) {
-                    chapters.forEach(chap => {
-                        const link = document.createElement('a');
-                        link.className = 'chapter-link';
-                        link.textContent = chap;
-                        link.href = `3.html?class=${classKey}&sub=${subject}&chapter=${encodeURIComponent(chap)}`;
-                        chapterList.appendChild(link);
-                    });
-                } else {
-                    noChaptersMsg.style.display = 'block';
-                }
-            }).catch(error => {
-                console.error("Firebase read failed: " + error.message);
-                loadingMsg.textContent = 'Error loading chapters.';
+        if (!selectedClass || !selectedSubject) {
+            breadcrumb.textContent = 'Error: Class or Subject not specified.';
+            loader.style.display = 'none';
+            return;
+        }
+
+        breadcrumb.textContent = `Class: ${selectedClass} > Subject: ${selectedSubject}`;
+
+        try {
+            const querySnapshot = await db.collection('questions')
+                .where('class', '==', selectedClass)
+                .where('subject', '==', selectedSubject)
+                .get();
+
+            const chapters = new Set();
+            querySnapshot.forEach(doc => {
+                chapters.add(doc.data().chapter);
             });
 
-        } else {
-            pageTitle.textContent = "Invalid Selection";
-            loadingMsg.textContent = 'Please go back to the home page and select a class and subject.';
+            loader.style.display = 'none';
+
+            if (chapters.size === 0) {
+                noChaptersMsg.style.display = 'block';
+            } else {
+                chapters.forEach(chapter => {
+                    const chapterCard = document.createElement('a');
+                    chapterCard.className = 'chapter-card';
+                    chapterCard.textContent = chapter;
+                    chapterCard.href = `3.html?class=${encodeURIComponent(selectedClass)}&sub=${encodeURIComponent(selectedSubject)}&chapter=${encodeURIComponent(chapter)}`;
+                    chapterGrid.appendChild(chapterCard);
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching chapters: ", error);
+            loader.textContent = 'Error loading chapters. Please try again.';
         }
-    </script>
+    };
+</script>
+
 </body>
 </html>
