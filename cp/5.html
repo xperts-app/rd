@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        #result-svg { width: 120px; height: 120px; margin-bottom: 20px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        #score-text { font-size: 1.5em; color: #555; margin-bottom: 30px; }
+        .actions { display: flex; justify-content: center; gap: 20px; }
+        .action-btn {
+            padding: 12px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .primary { background-color: #4A90E2; color: white; }
+        .secondary { background-color: #f0f2f5; color: #333; border: 1px solid #ddd;}
+        .action-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="result-svg">
+            <!-- SVG will be inserted by JS -->
+        </div>
+        <h1 id="result-title">Well Done!</h1>
+        <p id="score-text">You scored 0 out of 0</p>
+        <div class="actions">
+            <a href="6.html" class="action-btn secondary">Review Mistakes</a>
+            <a href="index.html" class="action-btn primary">Try Another Quiz</a>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const score = urlParams.get('score');
+        const total = urlParams.get('total');
+
+        const resultTitle = document.getElementById('result-title');
+        const scoreText = document.getElementById('score-text');
+        const svgContainer = document.getElementById('result-svg');
+
+        const successSVG = `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #28a745;">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`;
+        
+        const improvementSVG = `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #ffc107;">
+                 <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                 <path d="M12 7V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                 <path d="M12 17.0195V17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`;
+
+        if (score && total) {
+            scoreText.textContent = `You scored ${score} out of ${total}`;
+            const percentage = (score / total) * 100;
+            if (percentage >= 75) {
+                resultTitle.textContent = "Excellent Work!";
+                svgContainer.innerHTML = successSVG;
+            } else if (percentage >= 50) {
+                 resultTitle.textContent = "Good Effort!";
+                 svgContainer.innerHTML = successSVG;
+            } else {
+                 resultTitle.textContent = "Room for Improvement!";
+                 svgContainer.innerHTML = improvementSVG;
+            }
+        } else {
+            scoreText.textContent = "Could not retrieve score.";
+        }
+    </script>
+</body>
+</html>
