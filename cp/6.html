@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Mistakes</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        h1 { color: #4A90E2; text-align: center; }
+        .chapter-group {
+            margin-bottom: 30px;
+            border-left: 4px solid #4A90E2;
+            padding-left: 20px;
+        }
+        .chapter-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .mistake-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #fafafa;
+        }
+        .mistake-card img { max-width: 100%; border-radius: 6px; }
+        .question-p { font-size: 1.2em; font-weight: 600; }
+        .answer-label { font-weight: bold; }
+        .correct-answer { color: #28a745; }
+        .incorrect-answer { color: #dc3545; }
+        .solution { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; background: #e7f3ff; padding: 15px; border-radius: 6px;}
+        #no-mistakes { text-align: center; font-size: 1.2em; color: #888; }
+        .home-link {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            padding: 12px;
+            background: #4A90E2;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mistake Analysis</h1>
+        <div id="mistakes-container"></div>
+        <p id="no-mistakes" style="display: none;">Great job! You have no mistakes to review.</p>
+        <a href="index.html" class="home-link">Back to Home</a>
+    </div>
+
+    <script>
+        const mistakesContainer = document.getElementById('mistakes-container');
+        const noMistakesMsg = document.getElementById('no-mistakes');
+        
+        function renderOption(option) {
+            if (option.type === 'image') {
+                return `<img src="${option.image}" style="max-width: 200px; display: block;">`;
+            }
+            return option.text;
+        }
+
+        function displayMistakes() {
+            const mistakes = JSON.parse(localStorage.getItem('userMistakes')) || [];
+
+            if (mistakes.length === 0) {
+                noMistakesMsg.style.display = 'block';
+                return;
+            }
+
+            // Group mistakes by chapter
+            const mistakesByChapter = mistakes.reduce((acc, mistake) => {
+                const chapter = mistake.chapter || 'General';
+                if (!acc[chapter]) {
+                    acc[chapter] = [];
+                }
+                acc[chapter].push(mistake);
+                return acc;
+            }, {});
+
+            mistakesContainer.innerHTML = '';
+
+            for (const chapter in mistakesByChapter) {
+                const chapterGroup = document.createElement('div');
+                chapterGroup.className = 'chapter-group';
+
+                const chapterTitle = document.createElement('h2');
+                chapterTitle.className = 'chapter-title';
+                chapterTitle.textContent = chapter;
+                chapterGroup.appendChild(chapterTitle);
+
+                mistakesByChapter[chapter].forEach(mistake => {
+                    const card = document.createElement('div');
+                    card.className = 'mistake-card';
+
+                    let questionHTML = `<p class="question-p">Q: ${mistake.questionText}</p>`;
+                    if (mistake.questionType === 'image') {
+                        questionHTML = `<p class="question-p">Q:</p><img src="${mistake.questionImage}" alt="Question">`;
+                    }
+                    
+                    const correctOption = mistake.options[mistake.correctAnswerIndex];
+                    // Note: We didn't store the user's incorrect answer index, but we can add that logic in 4.html if needed.
+                    // For now, we'll just show the correct answer and solution.
+                    
+                    let solutionHTML = `<p><span class="answer-label">Solution:</span> ${mistake.solutionText}</p>`;
+                    if (mistake.solutionType === 'image') {
+                        solutionHTML = `<p class="answer-label">Solution:</p><img src="${mistake.solutionImage}" alt="Solution">`;
+                    }
+
+                    card.innerHTML = `
+                        ${questionHTML}
+                        <p>
+                            <span class="answer-label correct-answer">Correct Answer:</span> 
+                            ${renderOption(correctOption)}
+                        </p>
+                        <div class="solution">
+                            ${solutionHTML}
+                        </div>
+                    `;
+                    chapterGroup.appendChild(card);
+                });
+
+                mistakesContainer.appendChild(chapterGroup);
+            }
+        }
+
+        displayMistakes();
+    </script>
+</body>
+</html>
