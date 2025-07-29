@@ -25,37 +25,61 @@
         .carousel-container::-webkit-scrollbar { display: none; }
         .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; }
         .carousel-track.active { cursor: grabbing; }
+        
+        /* --- VISUAL FIXES --- */
         .class-card {
             flex: 0 0 250px; width: 250px; height: 245px; background-color: var(--white);
-            border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); overflow: hidden;
+            /* Rounded corners like the example */
+            border-radius: 24px; 
+            box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1); overflow: hidden;
             display: flex; flex-direction: column; text-decoration: none; color: inherit;
         }
-        .card-thumbnail { width: 100%; height: 120px; position: relative; background-color: #e0e0e0; overflow: hidden; flex-shrink: 0; }
+        .card-thumbnail { 
+            width: 100%; height: 120px; position: relative; background-color: #e0e0e0; 
+            overflow: hidden; flex-shrink: 0;
+            /* Rounded top corners for the image container */
+            border-radius: 24px 24px 0 0;
+        }
         .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
         .subject-tag {
-            position: absolute; top: 10px; left: 10px; background-color: var(--primary-blue); color: var(--white);
-            padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
+            position: absolute; top: 12px; left: 12px; background-color: var(--primary-blue); color: var(--white);
+            padding: 5px 12px; font-size: 0.75rem; font-weight: 600;
+            /* Rounded tag */
+            border-radius: 99px; 
         }
         .live-badge {
-            position: absolute; bottom: 8px; left: 10px; background-color: rgba(255, 255, 255, 0.9); color: var(--text-danger);
-            padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+            position: absolute; bottom: 10px; left: 12px; background-color: rgba(255, 255, 255, 0.9); color: var(--text-danger);
+            padding: 5px 12px; font-size: 0.8rem; font-weight: 600;
             display: none; align-items: center; backdrop-filter: blur(5px);
+            /* Rounded tag */
+            border-radius: 99px;
         }
         .live-badge.visible { display: flex; }
-        .live-badge::before { content: ''; width: 7px; height: 7px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
+        .live-badge::before { content: ''; width: 8px; height: 8px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
         .card-content {
-            padding: 16px; /* This padding gives the content and button proper spacing */
-            display: flex; flex-direction: column; flex-grow: 1;
+            padding: 16px; display: flex; flex-direction: column; flex-grow: 1;
         }
-        .card-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
-        .card-status { font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem; }
-        .card-status strong { color: var(--text-dark); font-weight: 600; }
-        .card-status .time-live { color: var(--text-danger); }
+        .card-title { font-size: 1.2rem; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
+        
+        /* CORRECTED STATUS TEXT STYLING */
+        .card-status { 
+            font-size: 0.95rem; 
+            color: var(--text-light); /* "Started at" is light gray */
+            margin-bottom: 1.5rem;
+        }
+        .card-status .time { 
+            color: var(--text-danger); /* Time is red */
+            font-weight: 700; /* Time is bold */
+        }
+        
         .join-now-btn {
-            width: 100%; padding: 0.75rem; font-size: 0.95rem; font-weight: 600; color: var(--white);
-            background-color: var(--primary-blue); border: none; border-radius: 10px; cursor: pointer;
+            width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 600; color: var(--white);
+            background-color: var(--primary-blue); border: none; cursor: pointer;
             text-align: center; margin-top: auto; text-decoration: none;
+            /* Pill-shaped button */
+            border-radius: 99px;
         }
+
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
     </style>
 </head>
@@ -75,7 +99,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        // --- 1. SETUP & CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs", authDomain: "custom-practices.firebaseapp.com",
             projectId: "custom-practices", storageBucket: "custom-practices.firebasestorage.app",
@@ -93,8 +116,6 @@
         const noClassesMessage = document.getElementById('no-classes-message');
         const dateFilterBar = document.querySelector('.date-filter-bar');
 
-
-        // --- 2. CORE FUNCTIONS ---
         function createClassCard(classData, classId) {
             const card = document.createElement('div');
             card.className = 'class-card';
@@ -108,14 +129,17 @@
 
         function updateClassStatus(classInfo) {
             const now = new Date(), startTime = new Date(classInfo.startTime);
+            const timeString = startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             const diffMinutes = (startTime - now) / (1000 * 60);
+            
             classInfo.liveBadge.classList.remove('visible');
             if (diffMinutes > 60) {
-                classInfo.statusElement.innerHTML = `Starts at <strong>${startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</strong>`;
+                classInfo.statusElement.innerHTML = `Starts at <strong>${timeString}</strong>`;
             } else if (diffMinutes > 0) {
                 classInfo.statusElement.innerHTML = `Starts in <strong>${Math.round(diffMinutes)} min</strong>`;
             } else {
-                classInfo.statusElement.innerHTML = `Started at <strong class="time-live">${startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</strong>`;
+                // CORRECTED HTML STRUCTURE FOR STATUS
+                classInfo.statusElement.innerHTML = `Started at <span class="time">${timeString}</span>`;
                 classInfo.liveBadge.classList.add('visible');
             }
         }
@@ -127,7 +151,7 @@
             if (expiredClassesIds.length > 0) {
                 expiredClassesIds.forEach(id => {
                     const cardToRemove = document.getElementById(`card-${id}`);
-                    if (cardToRemove) cardToRemove.remove(); // INSTANT REMOVAL
+                    if (cardToRemove) cardToRemove.remove();
                 });
                 allFetchedClasses = allFetchedClasses.filter(c => !expiredClassesIds.includes(c.id));
                 classesToUpdateTimers = classesToUpdateTimers.filter(t => !expiredClassesIds.includes(t.id));
@@ -142,16 +166,12 @@
             if (day === 'today') { filterStartDate = todayStart; filterEndDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000); } 
             else if (day === 'tomorrow') { filterStartDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000); filterEndDate = new Date(filterStartDate.getTime() + 24 * 60 * 60 * 1000); } 
             else { filterStartDate = new Date(todayStart.getTime() + 48 * 60 * 60 * 1000); filterEndDate = new Date(filterStartDate.getTime() + 24 * 60 * 60 * 1000); }
-            const classesForDay = allFetchedClasses.filter(c => {
-                const classStartTime = new Date(c.startTime);
-                return classStartTime >= filterStartDate && classStartTime < filterEndDate;
-            });
+            const classesForDay = allFetchedClasses.filter(c => new Date(c.startTime) >= filterStartDate && new Date(c.startTime) < filterEndDate);
             noClassesMessage.style.display = classesForDay.length === 0 ? 'block' : 'none';
             carouselTrack.style.display = classesForDay.length === 0 ? 'none' : 'flex';
             classesForDay.forEach(item => { if (item.cardElement) carouselTrack.appendChild(item.cardElement); });
         }
         
-        // --- 3. INITIALIZATION & REAL-TIME LISTENER ---
         function initializePage() {
             const urlParams = new URLSearchParams(window.location.search);
             const classFilter = urlParams.get('class');
@@ -160,9 +180,6 @@
                 noClassesMessage.style.display = 'block'; return;
             }
             
-            // **THE FINAL, CORRECTED QUERY**
-            // This query fetches all classes that have NOT YET EXPIRED.
-            // It requires the Firestore index on (classLevel ASC, expireTime ASC).
             const query = db.collection("classes")
                 .where("classLevel", "==", classFilter)
                 .where("expireTime", ">=", new Date().toISOString())
@@ -177,10 +194,8 @@
                     classData.cardElement = createClassCard(classData, doc.id);
                     allFetchedClasses.push(classData);
                 });
-                
                 const activeDay = document.querySelector('.filter-btn.active').dataset.day;
                 displayClassesForDay(activeDay);
-
             }, error => {
                 console.error("Firebase query failed:", error);
                 noClassesMessage.innerHTML = `<b>Error:</b> Could not load classes. Please ensure the Firestore index for (classLevel ASC, expireTime ASC) is enabled.`;
