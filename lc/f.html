@@ -23,22 +23,22 @@
         .filter-btn.active { background-color: var(--text-dark); color: var(--white); }
         .carousel-container { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .carousel-container::-webkit-scrollbar { display: none; }
-        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; align-items: flex-start; }
+        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 280px; align-items: flex-start; }
         
         /* --- FINAL, PIXEL-PERFECT CARD STYLING --- */
         .class-card {
             flex: 0 0 250px;
             width: 250px;
-            height: 245px; /* STRICT HEIGHT REQUIREMENT */
+            /* CRITICAL FIX: REMOVED fixed height. The card is now flexible. */
             background-color: var(--white);
             border-radius: 24px; 
             box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1);
-            padding: 12px;
-            /* CRITICAL: This layout ensures content fits the fixed height */
+            padding: 12px; /* Padding for the entire card */
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
+            box-sizing: border-box; /* Ensures padding is included in the width */
         }
         .card-thumbnail { 
             width: 100%; height: 120px; position: relative; background-color: #e0e0e0; 
@@ -65,35 +65,33 @@
             display: flex;
             flex-direction: column;
             flex-grow: 1; 
-            overflow: hidden; /* Prevent content from breaking out */
         }
-        
-        /* THE DEFINITIVE FIX FOR THE BUTTON ISSUE */
         .card-title {
             font-size: 1.2rem; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark);
-            /* This ensures the title never takes more than one line */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-wrap: break-word; /* Allows title to wrap to multiple lines */
         }
-
         .card-status { 
             font-size: 0.95rem; 
             color: var(--text-light);
-            margin-bottom: 1rem;
-            flex-shrink: 0;
+            margin-bottom: 1.5rem;
         }
-        .card-status .time { color: var(--text-danger); font-weight: 700; }
+        .card-status .time { 
+            color: var(--text-danger);
+            font-weight: 700;
+        }
         
+        /* THE DEFINITIVE BUTTON FIX */
         .join-now-btn {
-            width: 100%;
-            padding: 0.8rem; font-size: 1rem; font-weight: 600; color: var(--white);
+            /* REMOVED width: 100% */
+            padding: 0.8rem 2.5rem; /* Sized by its own padding */
+            font-size: 1rem; font-weight: 600; color: var(--white);
             background-color: var(--primary-blue); border: none; cursor: pointer;
-            text-align: center; text-decoration: none;
+            text-decoration: none;
             border-radius: 99px;
-            margin-top: auto; /* This guarantees the button is at the bottom */
-            flex-shrink: 0; /* Prevents the button from being squashed */
+            margin-top: auto; /* Pushes to the bottom */
+            align-self: center; /* Centers it horizontally */
         }
+
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
     </style>
 </head>
@@ -143,16 +141,16 @@
 
         function updateClassStatus(classInfo) {
             const now = new Date(), startTime = new Date(classInfo.startTime);
+            const timeString = startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             const diffMinutes = (startTime - now) / (1000 * 60);
             
             classInfo.liveBadge.classList.remove('visible');
             if (diffMinutes > 60) {
-                classInfo.statusElement.innerHTML = `Starts at <strong>${startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</strong>`;
+                classInfo.statusElement.innerHTML = `Starts at <strong>${timeString}</strong>`;
             } else if (diffMinutes > 0) {
                 classInfo.statusElement.innerHTML = `Starts in <strong>${Math.round(diffMinutes)} min</strong>`;
             } else {
                 const minutesAgo = Math.round(Math.abs(diffMinutes));
-                // CORRECTED LOGIC: Show "Started X min ago"
                 classInfo.statusElement.innerHTML = `Started <span class="time">${minutesAgo} min ago</span>`;
                 classInfo.liveBadge.classList.add('visible');
             }
