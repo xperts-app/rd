@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Details</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .header {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .header a {
+            text-decoration: none;
+            color: #000;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .main-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .class-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+        .info-text h1 {
+            font-size: 1.5rem;
+            margin: 0 0 0.5rem 0;
+        }
+        .info-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: #606770;
+        }
+        .info-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+        .info-date {
+            background-color: #f0f2f5;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .info-date .day {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1877f2;
+        }
+        .info-date .month {
+            font-size: 0.9rem;
+            color: #606770;
+            text-transform: uppercase;
+        }
+        .placeholder-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #606770;
+        }
+        .placeholder-content img {
+            max-width: 250px;
+            margin-bottom: 1rem;
+        }
+        .footer-action {
+            padding: 1rem;
+            background-color: #fff;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+        }
+        .join-button {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            background-color: #1877f2;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .join-button:hover {
+            background-color: #166fe5;
+        }
+        .join-button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+        .status-text {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #606770;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="#" onclick="history.back(); return false;">←</a>
+    </div>
+
+    <div class="main-content">
+        <div id="loader">Loading class details...</div>
+        <div id="class-details-container" style="display: none;">
+            <div class="class-info">
+                <div class="info-text">
+                    <p id="class-subject" style="color: #606770; margin: 0 0 4px 0; font-weight: 600;"></p>
+                    <h1 id="class-title"></h1>
+                    <div class="info-meta">
+                        <div class="info-meta-item">
+                            <span class="icon"></span> <!-- Person icon -->
+                            <span id="class-teacher"></span>
+                        </div>
+                        <div class="info-meta-item">
+                            <span class="icon"></span> <!-- Clock icon -->
+                            <span id="class-time"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-date">
+                    <div class="day" id="class-date-day">18</div>
+                    <div class="month" id="class-date-month">JUL</div>
+                </div>
+            </div>
+
+            <div class="placeholder-content">
+                <img src="https://i.imgur.com/GAYOh4Z.png" alt="Notes and recordings placeholder">
+                <p>The class recording and notes will be shown here 1 hour after the class ends</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-action">
+        <button id="join-class-btn" class="join-button" disabled>Join Class</button>
+        <p id="class-status-text" class="status-text">Loading status...</p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs",
+            authDomain: "custom-practices.firebaseapp.com",
+            projectId: "custom-practices",
+            storageBucket: "custom-practices.firebasestorage.app",
+            messagingSenderId: "636700937539",
+            appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
+            measurementId: "G-JL58DMTZ0W"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- DATA ---
+        const redirectUrls = {
+            "6": "https://meet.google.com/amf-mqim-buc",
+            "7": "https://meet.google.com/jgi-dvhg-fuz",
+            "8": "https://meet.google.com/gzi-obdg-oof",
+            "9": "https://meet.google.com/mgz-qfbe-rzg",
+            "10": "https://meet.google.com/tkk-npnb-sgm",
+            "11NEET": "https://meet.google.com/uia-pzmj-qvq",
+            "11JEE": "https://meet.google.com/asi-zwyg-zto",
+            "12NEET": "https://meet.google.com/dbx-azvv-qon",
+            "12JEE": "https://meet.google.com/xxv-uoir-rio"
+        };
+
+        // --- FUNCTIONS ---
+        async function fetchClassDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const classId = urlParams.get('id');
+            const loader = document.getElementById('loader');
+
+            if (!classId) {
+                loader.textContent = "Error: No class ID provided.";
+                return;
+            }
+
+            const docRef = db.collection("classes").doc(classId);
+            const doc = await docRef.get();
+
+            if (!doc.exists) {
+                loader.textContent = "Error: Class not found.";
+                return;
+            }
+            
+            const classData = doc.data();
+            populatePage(classData);
+
+            loader.style.display = 'none';
+            document.getElementById('class-details-container').style.display = 'flex';
+            document.getElementById('class-details-container').style.flexDirection = 'column';
+            document.getElementById('class-details-container').style.flexGrow = 1;
+
+            setupJoinButton(classData);
+        }
+        
+        function populatePage(data) {
+            const startTime = new Date(data.startTime);
+            const expireTime = new Date(data.expireTime);
+
+            document.getElementById('class-subject').textContent = data.subject;
+            document.getElementById('class-title').textContent = data.title;
+            document.getElementById('class-teacher').textContent = data.teacher;
+
+            const timeFormat = { hour: '2-digit', minute: '2-digit', hour12: true };
+            document.getElementById('class-time').textContent = `${startTime.toLocaleTimeString([], timeFormat)} - ${expireTime.toLocaleTimeString([], timeFormat)}`;
+            
+            document.getElementById('class-date-day').textContent = startTime.getDate();
+            document.getElementById('class-date-month').textContent = startTime.toLocaleString('default', { month: 'short' }).toUpperCase();
+        }
+
+        function setupJoinButton(classData) {
+            const joinButton = document.getElementById('join-class-btn');
+            const statusText = document.getElementById('class-status-text');
+            
+            const url = redirectUrls[classData.classLevel];
+            if (!url) {
+                joinButton.textContent = "Link Not Available";
+                statusText.textContent = "Configuration error.";
+                return;
+            }
+
+            joinButton.addEventListener('click', () => {
+                window.location.href = url;
+            });
+            
+            // Check status every second to enable the button at the right time
+            const timer = setInterval(() => {
+                const now = new Date();
+                const startTime = new Date(classData.startTime);
+                const expireTime = new Date(classData.expireTime);
+                
+                if (now >= startTime && now <= expireTime) {
+                    joinButton.disabled = false;
+                    statusText.textContent = "Class has started!";
+                } else if (now < startTime) {
+                    joinButton.disabled = true;
+                    statusText.textContent = "Class has not started yet";
+                } else {
+                    joinButton.disabled = true;
+                    statusText.textContent = "Class has ended";
+                    joinButton.textContent = "Class Ended";
+                    clearInterval(timer); // Stop checking once class is over
+                }
+            }, 1000);
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', fetchClassDetails);
+
+    </script>
+</body>
+</html>
