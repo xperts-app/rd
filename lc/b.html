@@ -23,30 +23,31 @@
         .filter-btn.active { background-color: var(--text-dark); color: var(--white); }
         .carousel-container { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .carousel-container::-webkit-scrollbar { display: none; }
-        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; }
+        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 280px; }
         
-        /* --- FINAL, CORRECTED CARD STYLING --- */
+        /* --- FINAL, PIXEL-PERFECT CARD STYLING --- */
         .class-card {
             flex: 0 0 250px;
             width: 250px;
-            /* REMOVED FIXED HEIGHT - This is the crucial fix */
-            /* The card will now grow to fit its content. */
             background-color: var(--white);
             border-radius: 24px; 
             box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1);
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
+            /* Padding for the entire card to contain all elements */
+            padding: 12px;
         }
         .card-thumbnail { 
             width: 100%; height: 120px; position: relative; background-color: #e0e0e0; 
             overflow: hidden; flex-shrink: 0;
+            /* The thumbnail itself is a rounded rectangle inside the card */
+            border-radius: 16px; 
         }
         .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
         .subject-tag {
-            position: absolute; top: 12px; left: 12px; background-color: var(--primary-blue); color: var(--white);
+            position: absolute; top: 12px; left: 12px; background-color: #007bff; color: var(--white);
             padding: 5px 12px; font-size: 0.75rem; font-weight: 600;
             border-radius: 99px; 
         }
@@ -58,29 +59,29 @@
         }
         .live-badge.visible { display: flex; }
         .live-badge::before { content: ''; width: 8px; height: 8px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
+        
         .card-content {
-            padding: 16px;
+            padding-top: 16px; /* Space between thumbnail and title */
             display: flex;
             flex-direction: column;
-            flex-grow: 1; /* This makes the content area fill the available space */
+            flex-grow: 1; 
         }
         .card-title { font-size: 1.2rem; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
         .card-status { 
-            font-size: 0.95rem; 
-            color: var(--text-light);
+            font-size: 0.95rem; color: var(--text-light);
             margin-bottom: 1.5rem;
         }
-        .card-status .time { 
-            color: var(--text-danger);
-            font-weight: 700;
-        }
+        .card-status .time { color: var(--text-danger); font-weight: 700; }
+        
         .join-now-btn {
-            width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 600; color: var(--white);
+            /* REMOVED width: 100% */
+            padding: 0.8rem 2.5rem; /* Sized by its own padding */
+            font-size: 1rem; font-weight: 600; color: var(--white);
             background-color: var(--primary-blue); border: none; cursor: pointer;
-            text-align: center; text-decoration: none;
+            text-decoration: none;
             border-radius: 99px;
-            /* This pushes the button to the bottom of the content area */
-            margin-top: auto; 
+            margin-top: auto; /* Pushes to the bottom */
+            align-self: center; /* Centers it horizontally */
         }
 
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
