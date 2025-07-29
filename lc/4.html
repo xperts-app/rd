@@ -3,157 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Class Dashboard</title>
+    <title>Admin - Schedule Class</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 2rem;
+            background-color: #f0f2f5; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 2rem 0;
         }
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: #fff; padding: 2rem 3rem; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px;
         }
-        h1 {
-            text-align: center;
-            color: #1c1e21;
-            margin-bottom: 2rem;
+        h1 { text-align: center; color: #1c1e21; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #606770; font-weight: 600; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 0.75rem; border: 1px solid #dddfe2;
+            border-radius: 6px; font-size: 1rem; box-sizing: border-box;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: #1877f2; box-shadow: 0 0 0 2px #e7f3ff;
         }
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #ddd;
+        button {
+            width: 100%; padding: 0.75rem; background-color: #1877f2; color: #fff;
+            border: none; border-radius: 6px; font-size: 1.1rem; font-weight: 600;
+            cursor: pointer; transition: background-color 0.2s;
         }
-        thead tr {
-            background-color: #f0f2f5;
-        }
-        th {
-            font-weight: 600;
-            color: #606770;
-        }
-        tbody tr:hover {
-            background-color: #f5f5f5;
-        }
-        .status {
-            padding: 5px 10px;
-            border-radius: 99px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #fff;
-            text-align: center;
-        }
-        .status-live { background-color: #d9534f; }
-        .status-upcoming { background-color: #f0ad4e; }
-        .status-finished { background-color: #5cb85c; }
+        button:hover { background-color: #166fe5; }
+        #status-message { text-align: center; margin-top: 1rem; font-weight: 600; }
+        .success { color: #4CAF50; } .error { color: #f44336; }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h1>Admin Dashboard: All Classes</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Teacher</th>
-                    <th>Class</th>
-                    <th>Subject</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="classes-table-body">
-                <tr>
-                    <td colspan="7" style="text-align: center;">Loading classes...</td>
-                </tr>
-            </tbody>
-        </table>
+        <h1 id="page-title">Schedule a Class</h1>
+        <form id="schedule-form">
+            <div class="form-group">
+                <label for="title">Class Title</label>
+                <input type="text" id="title" placeholder="e.g., Botany Chapter 5" required>
+            </div>
+             <div class="form-group">
+                <label for="teacher">Teacher's Name</label>
+                <input type="text" id="teacher" placeholder="e.g., Surabhi Bhagat" required>
+            </div>
+            <div class="form-group">
+                <label for="classLevel">Class Level</label>
+                <select id="classLevel" required>
+                    <option value="">-- Select Class --</option>
+                    <option value="6">6</option> <option value="7">7</option> <option value="8">8</option>
+                    <option value="9">9</option> <option value="10">10</option>
+                    <option value="11JEE">11 JEE</option> <option value="11NEET">11 NEET</option>
+                    <option value="12JEE">12 JEE</option> <option value="12NEET">12 NEET</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <select id="subject" required>
+                    <option value="">-- Select Class Level First --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="startTime">Start Time</label>
+                <input type="datetime-local" id="startTime" required>
+            </div>
+            <div class="form-group">
+                <label for="expireTime">End Time</label>
+                <input type="datetime-local" id="expireTime" required>
+            </div>
+            <button type="submit" id="submit-btn">Schedule Class</button>
+            <p id="status-message"></p>
+        </form>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <script>
-        // Your Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs",
-            authDomain: "custom-practices.firebaseapp.com",
-            projectId: "custom-practices",
-            storageBucket: "custom-practices.firebasestorage.app",
-            messagingSenderId: "636700937539",
-            appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
-            measurementId: "G-JL58DMTZ0W"
+            apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs", authDomain: "custom-practices.firebaseapp.com",
+            projectId: "custom-practices", storageBucket: "custom-practices.firebasestorage.app",
+            messagingSenderId: "636700937539", appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function getStatus(startTime, expireTime) {
-            const now = new Date();
-            const start = new Date(startTime);
-            const end = new Date(expireTime);
+        const subjectsByClass = {
+            "6-10": ["PHYSICS", "CHEMISTRY", "BIOLOGY", "MATH", "SST", "ENGLISH"],
+            "11-12 JEE": ["PHYSICS", "CHEMISTRY", "MATHS"],
+            "11-12 NEET": ["PHYSICS", "CHEMISTRY", "BOTANY", "ZOOLOGY"]
+        };
 
-            if (now >= start && now <= end) {
-                return '<span class="status status-live">Live</span>';
-            } else if (now < start) {
-                return '<span class="status status-upcoming">Upcoming</span>';
-            } else {
-                return '<span class="status status-finished">Finished</span>';
-            }
+        const classLevelSelect = document.getElementById('classLevel');
+        const subjectSelect = document.getElementById('subject');
+        const scheduleForm = document.getElementById('schedule-form');
+        const statusMessage = document.getElementById('status-message');
+
+        let editMode = false;
+        let classIdToEdit = null;
+
+        classLevelSelect.addEventListener('change', (e) => {
+            const selectedClass = e.target.value;
+            let subjects = [];
+            if (['6', '7', '8', '9', '10'].includes(selectedClass)) subjects = subjectsByClass["6-10"];
+            else if (selectedClass.includes('JEE')) subjects = subjectsByClass["11-12 JEE"];
+            else if (selectedClass.includes('NEET')) subjects = subjectsByClass["11-12 NEET"];
+            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+            subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject.charAt(0) + subject.slice(1).toLowerCase();
+                subjectSelect.appendChild(option);
+            });
+        });
+
+        function formatDateForInput(isoString) {
+            const date = new Date(isoString);
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+            return date.toISOString().slice(0, 16);
         }
 
-        async function fetchAllClasses() {
-            const tableBody = document.getElementById('classes-table-body');
-            
+        async function loadClassForEditing(classId) {
             try {
-                const querySnapshot = await db.collection("classes").orderBy("startTime", "desc").get();
-                
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No classes found.</td></tr>';
-                    return;
-                }
-
-                tableBody.innerHTML = ''; // Clear loader
-
-                querySnapshot.forEach(doc => {
+                const docRef = db.collection("classes").doc(classId);
+                const doc = await docRef.get();
+                if (doc.exists) {
                     const data = doc.data();
-                    const row = document.createElement('tr');
-                    
-                    const timeOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-                    const startTime = new Date(data.startTime).toLocaleString([], timeOptions);
-                    const expireTime = new Date(data.expireTime).toLocaleString([], timeOptions);
-                    
-                    row.innerHTML = `
-                        <td>${data.title}</td>
-                        <td>${data.teacher}</td>
-                        <td>${data.classLevel}</td>
-                        <td>${data.subject}</td>
-                        <td>${startTime}</td>
-                        <td>${expireTime}</td>
-                        <td>${getStatus(data.startTime, data.expireTime)}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-
+                    document.getElementById('title').value = data.title;
+                    document.getElementById('teacher').value = data.teacher;
+                    document.getElementById('classLevel').value = data.classLevel;
+                    classLevelSelect.dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        document.getElementById('subject').value = data.subject;
+                    }, 100);
+                    document.getElementById('startTime').value = formatDateForInput(data.startTime);
+                    document.getElementById('expireTime').value = formatDateForInput(data.expireTime);
+                } else {
+                    statusMessage.textContent = "Error: Class not found."; statusMessage.className = "error";
+                }
             } catch (error) {
-                console.error("Error fetching classes: ", error);
-                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Error loading classes.</td></tr>';
+                console.error("Error loading class data:", error);
+                statusMessage.textContent = "Could not load class data."; statusMessage.className = "error";
             }
         }
 
-        document.addEventListener('DOMContentLoaded', fetchAllClasses);
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('edit');
+            if (editId) {
+                editMode = true;
+                classIdToEdit = editId;
+                document.getElementById('page-title').textContent = "Edit Class";
+                document.getElementById('submit-btn').textContent = "Update Class";
+                loadClassForEditing(editId);
+            }
+        });
 
+        scheduleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const classData = {
+                title: document.getElementById('title').value, teacher: document.getElementById('teacher').value,
+                classLevel: document.getElementById('classLevel').value, subject: document.getElementById('subject').value,
+                startTime: new Date(document.getElementById('startTime').value).toISOString(),
+                expireTime: new Date(document.getElementById('expireTime').value).toISOString(),
+            };
+            statusMessage.textContent = "Processing..."; statusMessage.className = "";
+            try {
+                if (editMode) {
+                    await db.collection("classes").doc(classIdToEdit).update(classData);
+                    statusMessage.textContent = "Class updated successfully! Redirecting..."; statusMessage.className = "success";
+                    setTimeout(() => window.location.href = '4.html', 1500);
+                } else {
+                    await db.collection("classes").add(classData);
+                    statusMessage.textContent = "Class scheduled successfully!"; statusMessage.className = "success";
+                    scheduleForm.reset();
+                    subjectSelect.innerHTML = '<option value="">-- Select Class Level First --</option>';
+                }
+            } catch (error) {
+                console.error("Error saving data: ", error);
+                statusMessage.textContent = "Error saving class. See console."; statusMessage.className = "error";
+            }
+        });
     </script>
 </body>
 </html>
