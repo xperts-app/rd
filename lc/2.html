@@ -35,8 +35,9 @@
         }
 
         .filter-btn {
-            padding: 0.6rem 1.2rem;
-            font-size: 0.95rem;
+            /* STYLING CHANGE: Buttons are now smaller */
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             border: none;
             border-radius: 99px;
@@ -55,7 +56,7 @@
         .carousel-container {
             position: relative;
             width: 100%;
-            overflow-x: scroll;
+            overflow-x: auto; /* Use auto for better compatibility */
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
         }
@@ -359,34 +360,44 @@
             const classFilter = urlParams.get('class');
 
             if (!classFilter) {
-                carouselTrack.innerHTML = `<div id="no-classes-message" style="display:block;">Please specify a class in the URL, e.g., ?class=12NEET</div>`;
+                noClassesMessage.innerHTML = 'Please specify a class in the URL, e.g., ?class=12NEET';
+                noClassesMessage.style.display = 'block';
                 return;
             }
 
-            const threeDaysFromNow = new Date();
-            threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+            // **BUG FIX**: Corrected and simplified the Firestore query.
+            // This query is valid and requires an index on (classLevel, startTime).
+            // It fetches all classes for the specified level that start from today onwards.
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
 
             let query = db.collection("classes")
                 .where("classLevel", "==", classFilter)
-                .where("expireTime", ">", new Date().toISOString())
-                .where("startTime", "<", threeDaysFromNow.toISOString())
+                .where("startTime", ">=", todayStart.toISOString())
                 .orderBy("startTime", "asc");
 
-            const querySnapshot = await query.get();
-            
-            querySnapshot.forEach((doc) => {
-                const classData = doc.data();
-                classData.cardElement = createClassCard(classData, doc.id);
-                allFetchedClasses.push(classData);
-            });
-            
-            displayClassesForDay('today');
-            setInterval(updateAllTimers, 30000); // Update every 30 seconds
-            setupCarouselDrag();
+            try {
+                const querySnapshot = await query.get();
+                
+                querySnapshot.forEach((doc) => {
+                    const classData = doc.data();
+                    classData.cardElement = createClassCard(classData, doc.id);
+                    allFetchedClasses.push(classData);
+                });
+                
+                displayClassesForDay('today');
+                setInterval(updateAllTimers, 30000); // Update every 30 seconds
+                setupCarouselDrag();
+
+            } catch (error) {
+                console.error("Firebase query failed:", error);
+                noClassesMessage.innerHTML = `Error loading classes. Please ensure the Firestore index is created correctly. Check the console for more details.`;
+                noClassesMessage.style.display = 'block';
+            }
         }
 
         function setupCarouselDrag() {
-            const slider = document.querySelector('.carousel-track');
+            const slider = carouselTrack;
             let isDown = false;
             let startX;
             let scrollLeft;
@@ -410,7 +421,7 @@
         
         // --- EVENT LISTENERS ---
         dateFilterBar.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
+            if (e.target.tagName === 'BUTTON' && !e.target.classList.contains('active')) {
                 document.querySelector('.filter-btn.active').classList.remove('active');
                 e.target.classList.add('active');
                 displayClassesForDay(e.target.dataset.day);
