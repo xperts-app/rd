@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scheduled Classes</title>
     <style>
+        /* --- General Page Styles --- */
         :root {
             --primary-blue: #0d6efd; --text-dark: #212529; --text-light: #6c757d;
             --text-danger: #dc3545; --page-bg: #f0f4f9; --white: #ffffff;
@@ -14,6 +15,8 @@
             background-color: var(--page-bg); margin: 0; padding: 1.5rem 0;
         }
         .main-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+        /* --- Filter Buttons & Carousel --- */
         .date-filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
         .filter-btn {
             padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 99px;
@@ -25,14 +28,23 @@
         .carousel-container::-webkit-scrollbar { display: none; }
         .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; }
         .carousel-track.active { cursor: grabbing; }
+        
+        /* --- Class Card Styling --- */
         .class-card {
             flex: 0 0 250px; width: 250px; height: 245px; background-color: var(--white);
             border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); overflow: hidden;
             display: flex; flex-direction: column; text-decoration: none; color: inherit;
-            transition: transform 0.2s ease, box-shadow 0.2s, opacity 0.4s ease, height 0.4s ease, padding 0.4s ease, margin 0.4s ease;
+            /* UI FIX: Added smooth transitions for removal animation */
+            transition: transform 0.4s ease, opacity 0.4s ease, height 0.4s ease, padding 0.4s ease, margin 0.4s ease;
         }
+        /* UI FIX: Animation class for smooth removal */
         .class-card.removing {
-            opacity: 0; transform: scale(0.9); height: 0; padding: 0; margin: 0;
+            opacity: 0;
+            transform: scale(0.9);
+            height: 0;
+            padding: 0;
+            margin: 0;
+            border: none;
         }
         .card-thumbnail { width: 100%; height: 120px; position: relative; background-color: #e0e0e0; overflow: hidden; flex-shrink: 0; }
         .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
@@ -47,7 +59,12 @@
         }
         .live-badge.visible { display: flex; }
         .live-badge::before { content: ''; width: 7px; height: 7px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
-        .card-content { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
+        
+        .card-content {
+            /* UI FIX: Increased padding to give button breathing room */
+            padding: 16px; 
+            display: flex; flex-direction: column; flex-grow: 1;
+        }
         .card-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
         .card-status { font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem; }
         .card-status strong { color: var(--text-dark); font-weight: 600; }
@@ -57,6 +74,7 @@
             background-color: var(--primary-blue); border: none; border-radius: 10px; cursor: pointer;
             text-align: center; margin-top: auto; text-decoration: none;
         }
+
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
     </style>
 </head>
@@ -73,10 +91,17 @@
         <div id="no-classes-message">No scheduled classes for this day.</div>
     </div>
 
+    <!-- 
+    ================================================================
+    JAVASCRIPT CODE
+    This file is long because it contains HTML, CSS, and JS.
+    The script below handles all the dynamic class functionality.
+    ================================================================
+    -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <script>
+        // --- 1. SETUP & CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs", authDomain: "custom-practices.firebaseapp.com",
             projectId: "custom-practices", storageBucket: "custom-practices.firebasestorage.app",
@@ -94,39 +119,41 @@
         const noClassesMessage = document.getElementById('no-classes-message');
         const dateFilterBar = document.querySelector('.date-filter-bar');
 
-        function formatTime(date) { return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }); }
 
+        // --- 2. CORE FUNCTIONS ---
+
+        // Creates the HTML for a single class card
         function createClassCard(classData, classId) {
             const { title, subject, startTime, expireTime } = classData;
             const card = document.createElement('div');
             card.className = 'class-card';
             card.id = `card-${classId}`;
             card.innerHTML = `<div class="card-thumbnail"><img src="${subjectImages[subject.toUpperCase()] || subjectImages.BIOLOGY}" alt="${subject}"><div class="subject-tag">${subject}</div><div class="live-badge">LIVE</div></div><div class="card-content"><h3 class="card-title">${title}</h3><p class="card-status"></p><a href="3.html?id=${classId}" class="join-now-btn">Join Now</a></div>`;
-            const statusElement = card.querySelector('.card-status');
-            const liveBadge = card.querySelector('.live-badge');
-            const timerInfo = { id: classId, startTime, expireTime, statusElement, liveBadge };
+            
+            const timerInfo = { id: classId, startTime, expireTime, statusElement: card.querySelector('.card-status'), liveBadge: card.querySelector('.live-badge') };
             classesToUpdateTimers.push(timerInfo);
-            updateClassStatus(timerInfo);
+            updateClassStatus(timerInfo); // Set initial status
             return card;
         }
-        
+
+        // Updates the "Starts in..." or "Started at..." text and LIVE badge
         function updateClassStatus(classInfo) {
             const now = new Date();
             const startTime = new Date(classInfo.startTime);
             const diffMinutes = (startTime - now) / (1000 * 60);
             classInfo.liveBadge.classList.remove('visible');
             if (diffMinutes > 60) {
-                classInfo.statusElement.innerHTML = `Starts at <strong>${formatTime(startTime)}</strong>`;
+                classInfo.statusElement.innerHTML = `Starts at <strong>${startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</strong>`;
             } else if (diffMinutes > 0 && diffMinutes <= 60) {
                 classInfo.statusElement.innerHTML = `Starts in <strong>${Math.round(diffMinutes)} min</strong>`;
             } else {
-                classInfo.statusElement.innerHTML = `Started at <strong class="time-live">${formatTime(startTime)}</strong>`;
+                classInfo.statusElement.innerHTML = `Started at <strong class="time-live">${startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</strong>`;
                 classInfo.liveBadge.classList.add('visible');
             }
         }
         
-        function updateAllTimers() { classesToUpdateTimers.forEach(updateClassStatus); }
-
+        // **REAL-TIME REMOVAL LOGIC**
+        // Checks for expired classes and removes them from the view with an animation.
         function checkExpiredClasses() {
             const now = new Date();
             const expiredClassesIds = [];
@@ -147,20 +174,18 @@
                             if (carouselTrack.children.length === 0) {
                                 noClassesMessage.style.display = 'block';
                             }
-                        }, 500); // Wait for CSS animation
+                        }, 500); // Match this delay to the CSS animation duration
                     }
                 });
-                
-                // Update the master data arrays
                 allFetchedClasses = allFetchedClasses.filter(c => !expiredClassesIds.includes(c.id));
                 classesToUpdateTimers = classesToUpdateTimers.filter(t => !expiredClassesIds.includes(t.id));
             }
         }
         
+        // Filters and displays classes based on the selected day (Today, Tomorrow, etc.)
         function displayClassesForDay(day) {
             carouselTrack.innerHTML = '';
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const now = new Date(), todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             let filterStartDate, filterEndDate;
             if (day === 'today') {
                 filterStartDate = todayStart;
@@ -176,18 +201,12 @@
                 const classStartTime = new Date(c.startTime);
                 return classStartTime >= filterStartDate && classStartTime < filterEndDate;
             });
-            if (classesForDay.length === 0) {
-                noClassesMessage.style.display = 'block';
-                carouselTrack.style.display = 'none';
-            } else {
-                noClassesMessage.style.display = 'none';
-                carouselTrack.style.display = 'flex';
-                classesForDay.forEach(classItem => {
-                    if (classItem.cardElement) carouselTrack.appendChild(classItem.cardElement);
-                });
-            }
+            noClassesMessage.style.display = classesForDay.length === 0 ? 'block' : 'none';
+            carouselTrack.style.display = classesForDay.length === 0 ? 'none' : 'flex';
+            classesForDay.forEach(item => { if (item.cardElement) carouselTrack.appendChild(item.cardElement); });
         }
         
+        // --- 3. INITIALIZATION & EVENT LISTENERS ---
         async function initializePage() {
             const urlParams = new URLSearchParams(window.location.search);
             const classFilter = urlParams.get('class');
@@ -200,9 +219,8 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
             
-            // --- THE FINAL, CORRECTED QUERY ---
-            // This query fetches all classes that have not yet expired and orders them.
-            // It REQUIRES the index on (classLevel ASC, expireTime ASC).
+            // **THE FINAL, CORRECT QUERY**
+            // This requires the Firestore index on (classLevel ASC, expireTime ASC).
             let query = db.collection("classes")
                 .where("classLevel", "==", classFilter)
                 .where("expireTime", ">=", todayStart.toISOString())
@@ -219,12 +237,13 @@
                 
                 displayClassesForDay('today');
                 setupCarouselDrag();
-                setInterval(updateAllTimers, 1000); 
+                // Start real-time timers
+                setInterval(() => classesToUpdateTimers.forEach(updateClassStatus), 1000); 
                 setInterval(checkExpiredClasses, 5000);
 
             } catch (error) {
                 console.error("Firebase query failed:", error);
-                noClassesMessage.innerHTML = `<b>Error:</b> Could not load classes. Please ensure the Firestore index for <b>(classLevel ASC, expireTime ASC)</b> is created and enabled.`;
+                noClassesMessage.innerHTML = `<b>Error:</b> Could not load classes. Please ensure the required Firestore index is created and enabled.`;
                 noClassesMessage.style.display = 'block';
             }
         }
