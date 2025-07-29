@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Schedule Class</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            color: #1c1e21;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #606770;
+            font-weight: 600;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #dddfe2;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1877f2;
+            box-shadow: 0 0 0 2px #e7f3ff;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #1877f2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #166fe5;
+        }
+        #status-message {
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Admin: Schedule a Class</h1>
+        <form id="schedule-form">
+            <div class="form-group">
+                <label for="title">Class Title</label>
+                <input type="text" id="title" placeholder="e.g., Botany Chapter 5" required>
+            </div>
+             <div class="form-group">
+                <label for="teacher">Teacher's Name</label>
+                <input type="text" id="teacher" placeholder="e.g., Surabhi Bhagat" required>
+            </div>
+            <div class="form-group">
+                <label for="classLevel">Class Level</label>
+                <select id="classLevel" required>
+                    <option value="">-- Select Class --</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11JEE">11 JEE</option>
+                    <option value="11NEET">11 NEET</option>
+                    <option value="12JEE">12 JEE</option>
+                    <option value="12NEET">12 NEET</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <select id="subject" required>
+                    <option value="">-- Select Class Level First --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="startTime">Start Time</label>
+                <input type="datetime-local" id="startTime" required>
+            </div>
+            <div class="form-group">
+                <label for="expireTime">End Time</label>
+                <input type="datetime-local" id="expireTime" required>
+            </div>
+            <button type="submit">Schedule Class</button>
+            <p id="status-message"></p>
+        </form>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs",
+            authDomain: "custom-practices.firebaseapp.com",
+            projectId: "custom-practices",
+            storageBucket: "custom-practices.firebasestorage.app",
+            messagingSenderId: "636700937539",
+            appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
+            measurementId: "G-JL58DMTZ0W"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- DYNAMIC SUBJECTS LOGIC ---
+        const subjectsByClass = {
+            "6-10": ["PHYSICS", "CHEMISTRY", "BIOLOGY", "MATH", "SST", "ENGLISH"],
+            "11-12 JEE": ["PHYSICS", "CHEMISTRY", "MATHS"],
+            "11-12 NEET": ["PHYSICS", "CHEMISTRY", "BOTANY", "ZOOLOGY"]
+        };
+
+        const classLevelSelect = document.getElementById('classLevel');
+        const subjectSelect = document.getElementById('subject');
+
+        classLevelSelect.addEventListener('change', (e) => {
+            const selectedClass = e.target.value;
+            let subjects = [];
+
+            if (['6', '7', '8', '9', '10'].includes(selectedClass)) {
+                subjects = subjectsByClass["6-10"];
+            } else if (selectedClass.includes('JEE')) {
+                subjects = subjectsByClass["11-12 JEE"];
+            } else if (selectedClass.includes('NEET')) {
+                subjects = subjectsByClass["11-12 NEET"];
+            }
+
+            // Clear previous options
+            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+
+            // Populate new options
+            subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject.charAt(0) + subject.slice(1).toLowerCase();
+                subjectSelect.appendChild(option);
+            });
+        });
+
+        // --- FORM SUBMISSION LOGIC ---
+        const scheduleForm = document.getElementById('schedule-form');
+        const statusMessage = document.getElementById('status-message');
+
+        scheduleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const teacher = document.getElementById('teacher').value;
+            const classLevel = document.getElementById('classLevel').value;
+            const subject = document.getElementById('subject').value;
+            const startTime = document.getElementById('startTime').value;
+            const expireTime = document.getElementById('expireTime').value;
+
+            if (!title || !teacher || !classLevel || !subject || !startTime || !expireTime) {
+                statusMessage.textContent = "Please fill all fields.";
+                statusMessage.className = "error";
+                return;
+            }
+
+            statusMessage.textContent = "Scheduling...";
+            statusMessage.className = "";
+
+            try {
+                // We store timestamps as ISO strings for easy conversion back to Date objects
+                const classData = {
+                    title: title,
+                    teacher: teacher,
+                    classLevel: classLevel,
+                    subject: subject.toUpperCase(),
+                    startTime: new Date(startTime).toISOString(),
+                    expireTime: new Date(expireTime).toISOString(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection("classes").add(classData);
+
+                statusMessage.textContent = "Class scheduled successfully!";
+                statusMessage.className = "success";
+                scheduleForm.reset();
+                subjectSelect.innerHTML = '<option value="">-- Select Class Level First --</option>';
+
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                statusMessage.textContent = "Error scheduling class. See console.";
+                statusMessage.className = "error";
+            }
+        });
+    </script>
+
+</body>
+</html>
