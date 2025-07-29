@@ -24,60 +24,63 @@
         .carousel-container { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .carousel-container::-webkit-scrollbar { display: none; }
         .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; }
-        .carousel-track.active { cursor: grabbing; }
         
-        /* --- VISUAL FIXES --- */
+        /* --- FINAL, CORRECTED CARD STYLING --- */
         .class-card {
-            flex: 0 0 250px; width: 250px; height: 245px; background-color: var(--white);
-            /* Rounded corners like the example */
+            flex: 0 0 250px;
+            width: 250px;
+            /* REMOVED FIXED HEIGHT - This is the crucial fix */
+            /* The card will now grow to fit its content. */
+            background-color: var(--white);
             border-radius: 24px; 
-            box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1); overflow: hidden;
-            display: flex; flex-direction: column; text-decoration: none; color: inherit;
+            box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
         }
         .card-thumbnail { 
             width: 100%; height: 120px; position: relative; background-color: #e0e0e0; 
             overflow: hidden; flex-shrink: 0;
-            /* Rounded top corners for the image container */
-            border-radius: 24px 24px 0 0;
         }
         .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
         .subject-tag {
             position: absolute; top: 12px; left: 12px; background-color: var(--primary-blue); color: var(--white);
             padding: 5px 12px; font-size: 0.75rem; font-weight: 600;
-            /* Rounded tag */
             border-radius: 99px; 
         }
         .live-badge {
             position: absolute; bottom: 10px; left: 12px; background-color: rgba(255, 255, 255, 0.9); color: var(--text-danger);
             padding: 5px 12px; font-size: 0.8rem; font-weight: 600;
             display: none; align-items: center; backdrop-filter: blur(5px);
-            /* Rounded tag */
             border-radius: 99px;
         }
         .live-badge.visible { display: flex; }
         .live-badge::before { content: ''; width: 8px; height: 8px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
         .card-content {
-            padding: 16px; display: flex; flex-direction: column; flex-grow: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* This makes the content area fill the available space */
         }
         .card-title { font-size: 1.2rem; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
-        
-        /* CORRECTED STATUS TEXT STYLING */
         .card-status { 
             font-size: 0.95rem; 
-            color: var(--text-light); /* "Started at" is light gray */
+            color: var(--text-light);
             margin-bottom: 1.5rem;
         }
         .card-status .time { 
-            color: var(--text-danger); /* Time is red */
-            font-weight: 700; /* Time is bold */
+            color: var(--text-danger);
+            font-weight: 700;
         }
-        
         .join-now-btn {
             width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 600; color: var(--white);
             background-color: var(--primary-blue); border: none; cursor: pointer;
-            text-align: center; margin-top: auto; text-decoration: none;
-            /* Pill-shaped button */
+            text-align: center; text-decoration: none;
             border-radius: 99px;
+            /* This pushes the button to the bottom of the content area */
+            margin-top: auto; 
         }
 
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
@@ -138,7 +141,6 @@
             } else if (diffMinutes > 0) {
                 classInfo.statusElement.innerHTML = `Starts in <strong>${Math.round(diffMinutes)} min</strong>`;
             } else {
-                // CORRECTED HTML STRUCTURE FOR STATUS
                 classInfo.statusElement.innerHTML = `Started at <span class="time">${timeString}</span>`;
                 classInfo.liveBadge.classList.add('visible');
             }
