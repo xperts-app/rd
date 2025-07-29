@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Improvement Book</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        h1 { text-align: center; color: #0056b3; }
+        .class-group, .subject-group, .chapter-group {
+            border-radius: 8px; margin-bottom: 20px;
+        }
+        .class-group > h2, .subject-group > h3, .chapter-group > summary {
+            padding: 10px 15px; border-radius: 5px; color: white;
+        }
+        .class-group > h2 { background-color: #17a2b8; }
+        .subject-group > h3 { background-color: #6c757d; }
+        .chapter-group > summary { background-color: #007bff; cursor: pointer; }
+        .chapter-group[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .question-card {
+            background: white; padding: 20px; border: 1px solid #ddd; border-top: none;
+        }
+        .question-text { font-weight: bold; }
+        .question-image, .option img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 10px; }
+        .solution { margin-top: 15px; padding: 10px; background: #e9ecef; border-left: 3px solid #6c757d; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>My Improvement Book</h1>
+        <p style="text-align: center;">This book contains all the questions you've answered incorrectly. Review them to improve!</p>
+        <div id="improvementBookContainer"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('improvementBookContainer');
+            const improvementBook = JSON.parse(localStorage.getItem('improvementBook')) || {};
+
+            if (Object.keys(improvementBook).length === 0) {
+                container.innerHTML = '<p style="text-align: center; font-size: 1.2em; margin-top: 30px;">Your improvement book is empty. Keep practicing to find your weak spots!</p>';
+                return;
+            }
+
+            // Loop through Classes
+            for (const className in improvementBook) {
+                const classDiv = document.createElement('div');
+                classDiv.className = 'class-group';
+                classDiv.innerHTML = `<h2>Class: ${className}</h2>`;
+
+                // Loop through Subjects
+                for (const subjectName in improvementBook[className]) {
+                    const subjectDiv = document.createElement('div');
+                    subjectDiv.className = 'subject-group';
+                    subjectDiv.innerHTML = `<h3>Subject: ${subjectName}</h3>`;
+
+                    // Loop through Chapters
+                    for (const chapterName in improvementBook[className][subjectName]) {
+                        const chapterDetails = document.createElement('details');
+                        chapterDetails.className = 'chapter-group';
+                        
+                        const chapterSummary = document.createElement('summary');
+                        chapterSummary.textContent = `Chapter: ${chapterName} (${improvementBook[className][subjectName][chapterName].length} mistakes)`;
+                        chapterDetails.appendChild(chapterSummary);
+                        
+                        // Loop through Questions in the chapter
+                        improvementBook[className][subjectName][chapterName].forEach(q => {
+                            const questionCard = document.createElement('div');
+                            questionCard.className = 'question-card';
+
+                            let questionHTML = '';
+                            if (q.questionText) questionHTML += `<p class="question-text">${q.questionText}</p>`;
+                            if (q.questionImageUrl) questionHTML += `<img class="question-image" src="${q.questionImageUrl}" alt="Question Image">`;
+                            
+                            let optionsHTML = '<h4>Options:</h4>';
+                            q.options.forEach((opt, i) => {
+                                const isCorrect = i === q.correctAnswerIndex;
+                                optionsHTML += `<div class="option" style="${isCorrect ? 'font-weight:bold; color:green;' : ''}">
+                                    ${i+1}. ${opt.text}
+                                    ${opt.imageUrl ? `<img src="${opt.imageUrl}" alt="Option Image">` : ''}
+                                </div>`;
+                            });
+
+                            questionCard.innerHTML = `
+                                ${questionHTML}
+                                ${optionsHTML}
+                                <div class="solution">
+                                    <strong>Solution:</strong> ${q.solution}
+                                </div>
+                            `;
+                            chapterDetails.appendChild(questionCard);
+                        });
+                        subjectDiv.appendChild(chapterDetails);
+                    }
+                    classDiv.appendChild(subjectDiv);
+                }
+                container.appendChild(classDiv);
+            }
+        });
+    </script>
+</body>
+</html>
