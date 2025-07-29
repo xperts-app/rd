@@ -23,16 +23,24 @@
             border-bottom: 1px solid var(--border-color); flex-shrink: 0;
         }
         .header .title { font-size: 1.25rem; font-weight: 600; margin: 0; color: var(--text-dark); }
-        .content { padding: 0.5rem 1.5rem; overflow-y: auto; }
-        .status-heading {
-            font-size: 1.1rem; font-weight: 600; color: var(--text-dark); margin: 0;
-            padding: 1.5rem 0 0.75rem 0;
+        
+        .date-filter-bar { 
+            display: flex; gap: 0.75rem; padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
         }
+        .filter-btn {
+            padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 99px;
+            cursor: pointer; background-color: var(--light-gray); color: var(--text-dark);
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .filter-btn.active { background-color: var(--text-dark); color: var(--white); }
+
+        .content { padding: 0.5rem 1.5rem; overflow-y: auto; flex-grow: 1; }
         .class-item {
             display: flex; align-items: center; gap: 1rem; padding: 1rem 0;
             border-bottom: 1px solid var(--border-color);
         }
-        .class-item:last-child { border-bottom: none; }
+        .class-item:last-of-type { border-bottom: none; }
         .class-icon svg { width: 28px; height: 28px; fill: var(--text-light); }
         .class-details { flex-grow: 1; }
         .class-title { font-size: 1rem; font-weight: 600; color: var(--text-dark); margin: 0 0 4px 0; }
@@ -57,7 +65,7 @@
         }
         .fab:hover { transform: scale(1.05); }
         .fab svg { width: 24px; height: 24px; fill: #fff; }
-        #loader { text-align: center; padding: 3rem; color: var(--text-light); }
+        #message { text-align: center; padding: 3rem; color: var(--text-light); }
     </style>
 </head>
 <body>
@@ -65,8 +73,13 @@
         <header class="header">
             <h1 class="title">Admin Dashboard</h1>
         </header>
+        <div class="date-filter-bar">
+            <button class="filter-btn active" data-day="today">Today</button>
+            <button class="filter-btn" data-day="tomorrow">Tomorrow</button>
+            <button class="filter-btn" data-day="day_after">Day After</button>
+        </div>
         <main id="class-list" class="content">
-            <div id="loader">Loading classes...</div>
+            <div id="message">Loading classes...</div>
         </main>
         <a href="1.html" class="fab" title="Schedule New Class">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -84,45 +97,39 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function fetchAndRenderClasses() {
-            const listContainer = document.getElementById('class-list');
+        const listContainer = document.getElementById('class-list');
+        const dateFilterBar = document.querySelector('.date-filter-bar');
+        let allFetchedClasses = [];
+
+        async function initializeDashboard() {
             try {
-                const querySnapshot = await db.collection("classes").orderBy("startTime", "desc").get();
-                if (querySnapshot.empty) {
-                    listContainer.innerHTML = '<div id="loader">No classes scheduled yet.</div>';
-                    return;
-                }
-
-                const liveClasses = [], upcomingClasses = [], finishedClasses = [];
-                const now = new Date();
-
-                querySnapshot.forEach(doc => {
-                    const classData = { id: doc.id, ...doc.data() };
-                    const start = new Date(classData.startTime), end = new Date(classData.expireTime);
-                    if (now >= start && now <= end) liveClasses.push(classData);
-                    else if (now < start) upcomingClasses.push(classData);
-                    else finishedClasses.push(classData);
-                });
-
-                let htmlContent = '';
-                if (liveClasses.length > 0) htmlContent += renderGroup('Live Classes', liveClasses);
-                if (upcomingClasses.length > 0) htmlContent += renderGroup('Upcoming Classes', upcomingClasses);
-                if (finishedClasses.length > 0) htmlContent += renderGroup('Finished Classes', finishedClasses);
-                
-                listContainer.innerHTML = htmlContent;
-
+                const querySnapshot = await db.collection("classes").orderBy("startTime", "asc").get();
+                allFetchedClasses = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                displayClassesForDay('today');
             } catch (error) {
                 console.error("Error fetching classes: ", error);
-                listContainer.innerHTML = '<div id="loader">Error loading classes.</div>';
+                listContainer.innerHTML = '<div id="message">Error loading classes.</div>';
             }
         }
 
-        function renderGroup(title, classes) {
-            let groupHtml = `<h2 class="status-heading">${title}</h2>`;
-            classes.forEach(data => {
-                const timeOpts = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-                const timeString = new Date(data.startTime).toLocaleString([], timeOpts);
-                groupHtml += `
+        function displayClassesForDay(day) {
+            const now = new Date(), todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let filterStartDate, filterEndDate;
+            if (day === 'today') { filterStartDate = todayStart; filterEndDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000); } 
+            else if (day === 'tomorrow') { filterStartDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000); filterEndDate = new Date(filterStartDate.getTime() + 24 * 60 * 60 * 1000); } 
+            else { filterStartDate = new Date(todayStart.getTime() + 48 * 60 * 60 * 1000); filterEndDate = new Date(filterStartDate.getTime() + 24 * 60 * 60 * 1000); }
+
+            const classesForDay = allFetchedClasses.filter(c => new Date(c.startTime) >= filterStartDate && new Date(c.startTime) < filterEndDate);
+
+            if (classesForDay.length === 0) {
+                listContainer.innerHTML = `<div id="message">No classes scheduled for this day.</div>`;
+                return;
+            }
+
+            let htmlContent = '';
+            classesForDay.forEach(data => {
+                const timeString = new Date(data.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                htmlContent += `
                     <div class="class-item" id="item-${data.id}">
                         <div class="class-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>
@@ -142,22 +149,32 @@
                     </div>
                 `;
             });
-            return groupHtml;
+            listContainer.innerHTML = htmlContent;
         }
 
         async function deleteClass(classId) {
             if (confirm("Are you sure you want to permanently delete this class?")) {
                 try {
                     await db.collection("classes").doc(classId).delete();
-                    const itemToRemove = document.getElementById(`item-${classId}`);
-                    if (itemToRemove) itemToRemove.remove();
+                    allFetchedClasses = allFetchedClasses.filter(c => c.id !== classId);
+                    const activeDay = document.querySelector('.filter-btn.active').dataset.day;
+                    displayClassesForDay(activeDay);
                 } catch (error) {
                     console.error("Error removing document: ", error);
                     alert("Could not delete class. Please try again.");
                 }
             }
         }
-        document.addEventListener('DOMContentLoaded', fetchAndRenderClasses);
+
+        dateFilterBar.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' && !e.target.classList.contains('active')) {
+                document.querySelector('.filter-btn.active').classList.remove('active');
+                e.target.classList.add('active');
+                displayClassesForDay(e.target.dataset.day);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
     </script>
 </body>
 </html>
