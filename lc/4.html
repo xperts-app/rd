@@ -3,76 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Schedule Class</title>
+    <title>Admin Dashboard</title>
     <style>
+        :root {
+            --primary-blue: #0d6efd; --danger-red: #dc3545; --warning-orange: #fd7e14;
+            --success-green: #198754; --light-gray: #f8f9fa; --border-color: #dee2e6;
+            --text-dark: #212529; --text-light: #6c757d;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #f0f2f5; display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; margin: 0; padding: 2rem 0;
+            background-color: var(--light-gray); margin: 0; padding: 2rem;
         }
-        .container {
-            background-color: #fff; padding: 2rem 3rem; border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px;
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 2rem;
         }
-        h1 { text-align: center; color: #1c1e21; margin-bottom: 1.5rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; color: #606770; font-weight: 600; }
-        .form-group input, .form-group select {
-            width: 100%; padding: 0.75rem; border: 1px solid #dddfe2;
-            border-radius: 6px; font-size: 1rem; box-sizing: border-box;
+        h1 { color: var(--text-dark); margin: 0; }
+        .schedule-btn {
+            background-color: var(--primary-blue); color: #fff; text-decoration: none;
+            padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600;
+            transition: background-color 0.2s;
         }
-        .form-group input:focus, .form-group select:focus {
-            outline: none; border-color: #1877f2; box-shadow: 0 0 0 2px #e7f3ff;
+        .schedule-btn:hover { background-color: #0b5ed7; }
+        .table-container {
+            background-color: #fff; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden;
         }
-        button {
-            width: 100%; padding: 0.75rem; background-color: #1877f2; color: #fff;
-            border: none; border-radius: 6px; font-size: 1.1rem; font-weight: 600;
-            cursor: pointer; transition: background-color 0.2s;
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); }
+        thead tr { background-color: var(--light-gray); }
+        th { font-weight: 600; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background-color: #f1f3f5; }
+        .status {
+            padding: 5px 12px; border-radius: 99px; font-size: 0.8rem;
+            font-weight: 700; color: #fff; text-align: center;
         }
-        button:hover { background-color: #166fe5; }
-        #status-message { text-align: center; margin-top: 1rem; font-weight: 600; }
-        .success { color: #4CAF50; } .error { color: #f44336; }
+        .status-live { background-color: var(--danger-red); }
+        .status-upcoming { background-color: var(--warning-orange); }
+        .status-finished { background-color: var(--success-green); }
+        .actions-cell { display: flex; gap: 0.75rem; }
+        .action-btn {
+            background: none; border: none; cursor: pointer; padding: 0.5rem;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .action-btn:hover { background-color: #e9ecef; }
+        .action-btn svg { width: 18px; height: 18px; }
+        .edit-btn svg { fill: var(--primary-blue); }
+        .delete-btn svg { fill: var(--danger-red); }
+        #loader { text-align: center; padding: 3rem; color: var(--text-light); }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 id="page-title">Schedule a Class</h1>
-        <form id="schedule-form">
-            <div class="form-group">
-                <label for="title">Class Title</label>
-                <input type="text" id="title" placeholder="e.g., Botany Chapter 5" required>
-            </div>
-             <div class="form-group">
-                <label for="teacher">Teacher's Name</label>
-                <input type="text" id="teacher" placeholder="e.g., Surabhi Bhagat" required>
-            </div>
-            <div class="form-group">
-                <label for="classLevel">Class Level</label>
-                <select id="classLevel" required>
-                    <option value="">-- Select Class --</option>
-                    <option value="6">6</option> <option value="7">7</option> <option value="8">8</option>
-                    <option value="9">9</option> <option value="10">10</option>
-                    <option value="11JEE">11 JEE</option> <option value="11NEET">11 NEET</option>
-                    <option value="12JEE">12 JEE</option> <option value="12NEET">12 NEET</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="subject">Subject</label>
-                <select id="subject" required>
-                    <option value="">-- Select Class Level First --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="startTime">Start Time</label>
-                <input type="datetime-local" id="startTime" required>
-            </div>
-            <div class="form-group">
-                <label for="expireTime">End Time</label>
-                <input type="datetime-local" id="expireTime" required>
-            </div>
-            <button type="submit" id="submit-btn">Schedule Class</button>
-            <p id="status-message"></p>
-        </form>
+        <div class="header">
+            <h1>Class Dashboard</h1>
+            <a href="1.html" class="schedule-btn">Schedule New Class</a>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th><th>Class</th><th>Subject</th>
+                        <th>Start Time</th><th>End Time</th><th>Status</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="classes-table-body">
+                    <tr><td colspan="7" id="loader">Loading classes...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -86,102 +88,61 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const subjectsByClass = {
-            "6-10": ["PHYSICS", "CHEMISTRY", "BIOLOGY", "MATH", "SST", "ENGLISH"],
-            "11-12 JEE": ["PHYSICS", "CHEMISTRY", "MATHS"],
-            "11-12 NEET": ["PHYSICS", "CHEMISTRY", "BOTANY", "ZOOLOGY"]
-        };
-
-        const classLevelSelect = document.getElementById('classLevel');
-        const subjectSelect = document.getElementById('subject');
-        const scheduleForm = document.getElementById('schedule-form');
-        const statusMessage = document.getElementById('status-message');
-
-        let editMode = false;
-        let classIdToEdit = null;
-
-        classLevelSelect.addEventListener('change', (e) => {
-            const selectedClass = e.target.value;
-            let subjects = [];
-            if (['6', '7', '8', '9', '10'].includes(selectedClass)) subjects = subjectsByClass["6-10"];
-            else if (selectedClass.includes('JEE')) subjects = subjectsByClass["11-12 JEE"];
-            else if (selectedClass.includes('NEET')) subjects = subjectsByClass["11-12 NEET"];
-            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
-            subjects.forEach(subject => {
-                const option = document.createElement('option');
-                option.value = subject;
-                option.textContent = subject.charAt(0) + subject.slice(1).toLowerCase();
-                subjectSelect.appendChild(option);
-            });
-        });
-
-        function formatDateForInput(isoString) {
-            const date = new Date(isoString);
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-            return date.toISOString().slice(0, 16);
+        function getStatus(startTime, expireTime) {
+            const now = new Date(), start = new Date(startTime), end = new Date(expireTime);
+            if (now >= start && now <= end) return '<span class="status status-live">Live</span>';
+            if (now < start) return '<span class="status status-upcoming">Upcoming</span>';
+            return '<span class="status status-finished">Finished</span>';
         }
 
-        async function loadClassForEditing(classId) {
+        async function fetchAllClasses() {
+            const tableBody = document.getElementById('classes-table-body');
             try {
-                const docRef = db.collection("classes").doc(classId);
-                const doc = await docRef.get();
-                if (doc.exists) {
+                const querySnapshot = await db.collection("classes").orderBy("startTime", "desc").get();
+                tableBody.innerHTML = '';
+                if (querySnapshot.empty) {
+                    tableBody.innerHTML = '<tr><td colspan="7" id="loader">No classes scheduled yet.</td></tr>';
+                    return;
+                }
+                querySnapshot.forEach(doc => {
                     const data = doc.data();
-                    document.getElementById('title').value = data.title;
-                    document.getElementById('teacher').value = data.teacher;
-                    document.getElementById('classLevel').value = data.classLevel;
-                    classLevelSelect.dispatchEvent(new Event('change'));
-                    setTimeout(() => {
-                        document.getElementById('subject').value = data.subject;
-                    }, 100);
-                    document.getElementById('startTime').value = formatDateForInput(data.startTime);
-                    document.getElementById('expireTime').value = formatDateForInput(data.expireTime);
-                } else {
-                    statusMessage.textContent = "Error: Class not found."; statusMessage.className = "error";
-                }
+                    const row = document.createElement('tr');
+                    row.id = `row-${doc.id}`;
+                    const timeOpts = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                    row.innerHTML = `
+                        <td>${data.title}</td><td>${data.classLevel}</td><td>${data.subject}</td>
+                        <td>${new Date(data.startTime).toLocaleString([], timeOpts)}</td>
+                        <td>${new Date(data.expireTime).toLocaleString([], timeOpts)}</td>
+                        <td>${getStatus(data.startTime, data.expireTime)}</td>
+                        <td class="actions-cell">
+                            <a href="1.html?edit=${doc.id}" class="action-btn edit-btn" title="Edit Class">
+                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>
+                            </a>
+                            <button onclick="deleteClass('${doc.id}')" class="action-btn delete-btn" title="Delete Class">
+                                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
             } catch (error) {
-                console.error("Error loading class data:", error);
-                statusMessage.textContent = "Could not load class data."; statusMessage.className = "error";
+                console.error("Error fetching classes: ", error);
+                tableBody.innerHTML = '<tr><td colspan="7" id="loader">Error loading classes.</td></tr>';
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const editId = urlParams.get('edit');
-            if (editId) {
-                editMode = true;
-                classIdToEdit = editId;
-                document.getElementById('page-title').textContent = "Edit Class";
-                document.getElementById('submit-btn').textContent = "Update Class";
-                loadClassForEditing(editId);
-            }
-        });
-
-        scheduleForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const classData = {
-                title: document.getElementById('title').value, teacher: document.getElementById('teacher').value,
-                classLevel: document.getElementById('classLevel').value, subject: document.getElementById('subject').value,
-                startTime: new Date(document.getElementById('startTime').value).toISOString(),
-                expireTime: new Date(document.getElementById('expireTime').value).toISOString(),
-            };
-            statusMessage.textContent = "Processing..."; statusMessage.className = "";
-            try {
-                if (editMode) {
-                    await db.collection("classes").doc(classIdToEdit).update(classData);
-                    statusMessage.textContent = "Class updated successfully! Redirecting..."; statusMessage.className = "success";
-                    setTimeout(() => window.location.href = '4.html', 1500);
-                } else {
-                    await db.collection("classes").add(classData);
-                    statusMessage.textContent = "Class scheduled successfully!"; statusMessage.className = "success";
-                    scheduleForm.reset();
-                    subjectSelect.innerHTML = '<option value="">-- Select Class Level First --</option>';
+        async function deleteClass(classId) {
+            if (confirm("Are you sure you want to permanently delete this class?")) {
+                try {
+                    await db.collection("classes").doc(classId).delete();
+                    document.getElementById(`row-${classId}`).remove();
+                } catch (error) {
+                    console.error("Error removing document: ", error);
+                    alert("Could not delete class. Please try again.");
                 }
-            } catch (error) {
-                console.error("Error saving data: ", error);
-                statusMessage.textContent = "Error saving class. See console."; statusMessage.className = "error";
             }
-        });
+        }
+        document.addEventListener('DOMContentLoaded', fetchAllClasses);
     </script>
 </body>
 </html>
