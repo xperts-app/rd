@@ -12,10 +12,6 @@
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
             --border-color: #e9ecef;
-            --correct-bg: #d4edda;
-            --correct-border: #28a745;
-            --wrong-bg: #f8d7da;
-            --wrong-border: #dc3545;
             --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         * { box-sizing: border-box; }
@@ -104,58 +100,7 @@
             align-items: center;
             gap: 8px;
             padding: 5px;
-        }
-        
-        /* --- Modal (Pop-up) --- */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: none; /* Initially hidden */
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        .modal-content {
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: 12px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 28px;
-            color: var(--secondary-text);
-            cursor: pointer;
-            border: none;
-            background: none;
-        }
-        #modalBody h3 { margin-top: 0; }
-        .modal-option {
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .modal-option img { max-width: 150px; display: block; margin-top: 8px; }
-        .correct-answer { border-color: var(--correct-border); background-color: var(--correct-bg); }
-        .wrong-answer { border-color: var(--wrong-border); background-color: var(--wrong-bg); }
-        .modal-solution {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: var(--bg-color);
-            border-left: 4px solid var(--accent-color);
-            border-radius: 4px;
+            text-decoration: none; /* For the <a> tag */
         }
 
     </style>
@@ -172,40 +117,23 @@
         </main>
     </div>
 
-    <!-- Modal Structure -->
-    <div id="solutionModal" class="modal-overlay">
-        <div class="modal-content">
-            <button class="close-btn">×</button>
-            <div id="modalBody">
-                <!-- Modal content will be injected here by JS -->
-            </div>
-        </div>
-    </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM ELEMENTS ---
             const reviewContainer = document.getElementById('reviewContainer');
-            const solutionModal = document.getElementById('solutionModal');
-            const modalBody = document.getElementById('modalBody');
-            const closeBtn = document.querySelector('.close-btn');
-
-            // --- LOAD DATA ---
             const sessionDataJSON = sessionStorage.getItem('testSession');
+            
             if (!sessionDataJSON) {
                 reviewContainer.innerHTML = '<p style="text-align:center;">No test session found to review.</p>';
                 return;
             }
-            const { questions, userAnswers } = JSON.parse(sessionDataJSON);
+            const { questions } = JSON.parse(sessionDataJSON);
 
-            // --- RENDER CARDS ---
             questions.forEach((q, index) => {
                 const reviewCard = document.createElement('div');
                 reviewCard.className = 'review-card';
 
                 let questionBodyHTML = '';
                 if (q.questionText) {
-                    // Replace newlines with <br> for better formatting of statement questions
                     questionBodyHTML += `<p>${q.questionText.replace(/\n/g, '<br>')}</p>`;
                 }
                 if (q.questionImageUrl) {
@@ -221,7 +149,7 @@
                         ${questionBodyHTML}
                     </div>
                     <hr class="separator">
-                    <button class="solution-btn" data-question-index="${index}">
+                    <a href="8.html?q_index=${index}" class="solution-btn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 5.5C2 4.94772 2.44772 4.5 3 4.5H21C21.5523 4.5 22 4.94772 22 5.5V18.5C22 19.0523 21.5523 19.5 21 19.5H3C2.44772 19.5 2 19.0523 2 18.5V5.5Z" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M6 9.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -229,67 +157,9 @@
                             <path d="M6 15.5H14" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         <span>View solution</span>
-                    </button>
+                    </a>
                 `;
                 reviewContainer.appendChild(reviewCard);
-            });
-
-            // --- MODAL LOGIC ---
-            reviewContainer.addEventListener('click', (e) => {
-                const solutionButton = e.target.closest('.solution-btn');
-                if (solutionButton) {
-                    const questionIndex = parseInt(solutionButton.dataset.questionIndex, 10);
-                    populateAndShowModal(questions[questionIndex], userAnswers[questionIndex]);
-                }
-            });
-
-            function populateAndShowModal(q, userAnswerIndex) {
-                let optionsHTML = '';
-                q.options.forEach((opt, i) => {
-                    let optionClasses = 'modal-option';
-                    const correctAnswerIndex = q.correctAnswerIndex;
-
-                    if (i === correctAnswerIndex) {
-                        optionClasses += ' correct-answer';
-                    } else if (i === userAnswerIndex && userAnswerIndex !== correctAnswerIndex) {
-                        optionClasses += ' wrong-answer';
-                    }
-
-                    let optContent = `<strong>${opt.text}</strong>`;
-                    if (opt.imageUrl) {
-                        optContent += `<img src="${opt.imageUrl}" alt="Option Image">`;
-                    }
-                    optionsHTML += `<div class="${optionClasses}">${optContent}</div>`;
-                });
-
-                const yourAnswerText = userAnswerIndex !== -1 
-                    ? `Your Answer: Option ${userAnswerIndex + 1}` 
-                    : 'Your Answer: Not Attempted';
-                
-                modalBody.innerHTML = `
-                    <h3>Full Question & Solution</h3>
-                    <p>${q.questionText.replace(/\n/g, '<br>')}</p>
-                    ${q.questionImageUrl ? `<img src="${q.questionImageUrl}" class="question-image" style="margin-bottom:20px;">` : ''}
-                    <div>${optionsHTML}</div>
-                    <p><em>${yourAnswerText}</em></p>
-                    <div class="modal-solution">
-                        <h4>Detailed Solution</h4>
-                        <p>${q.solution}</p>
-                    </div>
-                `;
-                solutionModal.style.display = 'flex';
-            }
-
-            function closeModal() {
-                solutionModal.style.display = 'none';
-            }
-
-            closeBtn.addEventListener('click', closeModal);
-            solutionModal.addEventListener('click', (e) => {
-                // Close modal if user clicks on the dark overlay, but not on the content
-                if (e.target === solutionModal) {
-                    closeModal();
-                }
             });
         });
     </script>
