@@ -58,26 +58,32 @@
             font-weight: 700;
             margin-bottom: 15px;
         }
-        .card-header .icon {
-            width: 24px;
-            height: 24px;
+        .toggle-btn {
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            background-color: #555;
-            color: white;
+            background-color: #f0f2f5;
+            color: #555;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            line-height: 24px;
+            font-size: 22px;
+            line-height: 28px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .collapsible-content {
+            /* This content will be toggled */
+            transition: all 0.3s ease;
+        }
+        .collapsible-content.collapsed {
+            display: none;
         }
         .card-body p {
             font-size: 18px;
             line-height: 1.6;
             margin: 0;
-        }
-        .card-body strong {
-            display: block;
-            margin-bottom: 5px;
         }
         .card-body img {
             max-width: 100%;
@@ -100,7 +106,7 @@
             align-items: center;
             gap: 8px;
             padding: 5px;
-            text-decoration: none; /* For the <a> tag */
+            text-decoration: none;
         }
 
     </style>
@@ -140,26 +146,51 @@
                     questionBodyHTML += `<img src="${q.questionImageUrl}" alt="Question Image">`;
                 }
 
+                // **MODIFICATION**: Changed icon div to a button and wrapped content
                 reviewCard.innerHTML = `
                     <div class="card-header">
                         <span>Question ${index + 1}</span>
-                        <div class="icon">-</div>
+                        <button class="toggle-btn">-</button>
                     </div>
-                    <div class="card-body">
-                        ${questionBodyHTML}
+                    <div class="collapsible-content">
+                        <div class="card-body">
+                            ${questionBodyHTML}
+                        </div>
+                        <hr class="separator">
+                        <a href="8.html?q_index=${index}" class="solution-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 5.5C2 4.94772 2.44772 4.5 3 4.5H21C21.5523 4.5 22 4.94772 22 5.5V18.5C22 19.0523 21.5523 19.5 21 19.5H3C2.44772 19.5 2 19.0523 2 18.5V5.5Z" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6 9.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6 12.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6 15.5H14" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>View solution</span>
+                        </a>
                     </div>
-                    <hr class="separator">
-                    <a href="8.html?q_index=${index}" class="solution-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M2 5.5C2 4.94772 2.44772 4.5 3 4.5H21C21.5523 4.5 22 4.94772 22 5.5V18.5C22 19.0523 21.5523 19.5 21 19.5H3C2.44772 19.5 2 19.0523 2 18.5V5.5Z" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M6 9.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M6 12.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M6 15.5H14" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <span>View solution</span>
-                    </a>
                 `;
                 reviewContainer.appendChild(reviewCard);
+            });
+
+            // **NEW**: Added event listener for the toggle functionality
+            reviewContainer.addEventListener('click', (e) => {
+                // Use .closest() to find the button even if an inner part of it was clicked
+                const toggleButton = e.target.closest('.toggle-btn');
+
+                // If a toggle button wasn't clicked, do nothing
+                if (!toggleButton) return;
+
+                const card = toggleButton.closest('.review-card');
+                const content = card.querySelector('.collapsible-content');
+
+                // Toggle the 'collapsed' class on the content
+                content.classList.toggle('collapsed');
+
+                // Change the button text based on the state
+                if (content.classList.contains('collapsed')) {
+                    toggleButton.textContent = '+';
+                } else {
+                    toggleButton.textContent = '-';
+                }
             });
         });
     </script>
