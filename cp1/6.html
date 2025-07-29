@@ -5,67 +5,253 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Answers</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        h1 { text-align: center; color: #0056b3; }
-        .review-item {
-            background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;
+        :root {
+            --primary-text: #1a1a1a;
+            --secondary-text: #6c757d;
+            --accent-color: #007bff;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --border-color: #e9ecef;
+            --correct-bg: #d4edda;
+            --correct-border: #28a745;
+            --wrong-bg: #f8d7da;
+            --wrong-border: #dc3545;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        .review-item h3 { margin-top: 0; }
-        .question-text { font-size: 1.2em; font-weight: bold; margin-bottom: 15px; }
-        .question-image { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 15px; }
-        .option {
-            padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-bottom: 8px;
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            margin: 0;
         }
-        .option img { max-width: 150px; display: block; margin-top: 5px; }
-        .correct-answer { border-color: #28a745; background-color: #d4edda; }
-        .wrong-answer { border-color: #dc3545; background-color: #f8d7da; }
-        .solution {
-            margin-top: 20px; padding: 15px; background-color: #e2e3e5; border-left: 5px solid #007bff; border-radius: 4px;
+
+        /* --- Page Layout --- */
+        .page-container {
+            max-width: 800px;
+            margin: auto;
         }
-        .solution h4 { margin-top: 0; }
+        .header {
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 22px;
+            margin: 0;
+            text-align: center;
+        }
+        .review-content {
+            padding: 0 15px 20px 15px;
+        }
+
+        /* --- Review Card --- */
+        .review-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .card-header .icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #555;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            line-height: 24px;
+        }
+        .card-body p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0;
+        }
+        .card-body strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .card-body img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .separator {
+            border: 0;
+            border-top: 1px dashed var(--border-color);
+            margin: 20px 0;
+        }
+        .solution-btn {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px;
+        }
+        
+        /* --- Modal (Pop-up) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none; /* Initially hidden */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            color: var(--secondary-text);
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+        #modalBody h3 { margin-top: 0; }
+        .modal-option {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .modal-option img { max-width: 150px; display: block; margin-top: 8px; }
+        .correct-answer { border-color: var(--correct-border); background-color: var(--correct-bg); }
+        .wrong-answer { border-color: var(--wrong-border); background-color: var(--wrong-bg); }
+        .modal-solution {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--bg-color);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Detailed Review</h1>
-        <div id="reviewContainer"></div>
+    <div class="page-container">
+        <header class="header">
+            <h1>Review Answers</h1>
+        </header>
+
+        <main class="review-content" id="reviewContainer">
+            <!-- Question cards will be injected here by JS -->
+        </main>
+    </div>
+
+    <!-- Modal Structure -->
+    <div id="solutionModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-btn">×</button>
+            <div id="modalBody">
+                <!-- Modal content will be injected here by JS -->
+            </div>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
             const reviewContainer = document.getElementById('reviewContainer');
+            const solutionModal = document.getElementById('solutionModal');
+            const modalBody = document.getElementById('modalBody');
+            const closeBtn = document.querySelector('.close-btn');
+
+            // --- LOAD DATA ---
             const sessionDataJSON = sessionStorage.getItem('testSession');
-            
             if (!sessionDataJSON) {
                 reviewContainer.innerHTML = '<p style="text-align:center;">No test session found to review.</p>';
                 return;
             }
-
             const { questions, userAnswers } = JSON.parse(sessionDataJSON);
 
+            // --- RENDER CARDS ---
             questions.forEach((q, index) => {
-                const reviewItem = document.createElement('div');
-                reviewItem.className = 'review-item';
+                const reviewCard = document.createElement('div');
+                reviewCard.className = 'review-card';
 
-                let questionHTML = `<h3>Question ${index + 1}</h3>`;
+                let questionBodyHTML = '';
                 if (q.questionText) {
-                    questionHTML += `<p class="question-text">${q.questionText}</p>`;
+                    // Replace newlines with <br> for better formatting of statement questions
+                    questionBodyHTML += `<p>${q.questionText.replace(/\n/g, '<br>')}</p>`;
                 }
                 if (q.questionImageUrl) {
-                    questionHTML += `<img src="${q.questionImageUrl}" class="question-image" alt="Question Image">`;
+                    questionBodyHTML += `<img src="${q.questionImageUrl}" alt="Question Image">`;
                 }
-                
+
+                reviewCard.innerHTML = `
+                    <div class="card-header">
+                        <span>Question ${index + 1}</span>
+                        <div class="icon">-</div>
+                    </div>
+                    <div class="card-body">
+                        ${questionBodyHTML}
+                    </div>
+                    <hr class="separator">
+                    <button class="solution-btn" data-question-index="${index}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 5.5C2 4.94772 2.44772 4.5 3 4.5H21C21.5523 4.5 22 4.94772 22 5.5V18.5C22 19.0523 21.5523 19.5 21 19.5H3C2.44772 19.5 2 19.0523 2 18.5V5.5Z" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 12.5H18" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 15.5H14" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>View solution</span>
+                    </button>
+                `;
+                reviewContainer.appendChild(reviewCard);
+            });
+
+            // --- MODAL LOGIC ---
+            reviewContainer.addEventListener('click', (e) => {
+                const solutionButton = e.target.closest('.solution-btn');
+                if (solutionButton) {
+                    const questionIndex = parseInt(solutionButton.dataset.questionIndex, 10);
+                    populateAndShowModal(questions[questionIndex], userAnswers[questionIndex]);
+                }
+            });
+
+            function populateAndShowModal(q, userAnswerIndex) {
                 let optionsHTML = '';
                 q.options.forEach((opt, i) => {
-                    let optionClasses = 'option';
-                    const userAnswer = userAnswers[index];
-                    const correctAnswer = q.correctAnswerIndex;
+                    let optionClasses = 'modal-option';
+                    const correctAnswerIndex = q.correctAnswerIndex;
 
-                    if (i === correctAnswer) {
+                    if (i === correctAnswerIndex) {
                         optionClasses += ' correct-answer';
-                    } else if (i === userAnswer && userAnswer !== correctAnswer) {
+                    } else if (i === userAnswerIndex && userAnswerIndex !== correctAnswerIndex) {
                         optionClasses += ' wrong-answer';
                     }
 
@@ -73,28 +259,37 @@
                     if (opt.imageUrl) {
                         optContent += `<img src="${opt.imageUrl}" alt="Option Image">`;
                     }
-                    
                     optionsHTML += `<div class="${optionClasses}">${optContent}</div>`;
                 });
 
-                const yourAnswerText = userAnswers[index] !== -1 
-                    ? `Your Answer: Option ${userAnswers[index] + 1}` 
+                const yourAnswerText = userAnswerIndex !== -1 
+                    ? `Your Answer: Option ${userAnswerIndex + 1}` 
                     : 'Your Answer: Not Attempted';
                 
-                const correctStatus = userAnswers[index] === q.correctAnswerIndex 
-                    ? '<span style="color:green;">(Correct)</span>' 
-                    : '<span style="color:red;">(Incorrect)</span>';
-
-                reviewItem.innerHTML = `
-                    ${questionHTML}
-                    <div class="options-container">${optionsHTML}</div>
-                    <p><em>${yourAnswerText} ${userAnswers[index] !== -1 ? correctStatus : ''}</em></p>
-                    <div class="solution">
+                modalBody.innerHTML = `
+                    <h3>Full Question & Solution</h3>
+                    <p>${q.questionText.replace(/\n/g, '<br>')}</p>
+                    ${q.questionImageUrl ? `<img src="${q.questionImageUrl}" class="question-image" style="margin-bottom:20px;">` : ''}
+                    <div>${optionsHTML}</div>
+                    <p><em>${yourAnswerText}</em></p>
+                    <div class="modal-solution">
                         <h4>Detailed Solution</h4>
                         <p>${q.solution}</p>
                     </div>
                 `;
-                reviewContainer.appendChild(reviewItem);
+                solutionModal.style.display = 'flex';
+            }
+
+            function closeModal() {
+                solutionModal.style.display = 'none';
+            }
+
+            closeBtn.addEventListener('click', closeModal);
+            solutionModal.addEventListener('click', (e) => {
+                // Close modal if user clicks on the dark overlay, but not on the content
+                if (e.target === solutionModal) {
+                    closeModal();
+                }
             });
         });
     </script>
