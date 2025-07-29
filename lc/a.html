@@ -6,147 +6,59 @@
     <title>Scheduled Classes</title>
     <style>
         :root {
-            --primary-blue: #0d6efd;
-            --text-dark: #212529;
-            --text-light: #6c757d;
-            --text-danger: #dc3545;
-            --page-bg: #f0f4f9;
-            --white: #ffffff;
-            --border-color: #dee2e6;
+            --primary-blue: #0d6efd; --text-dark: #212529; --text-light: #6c757d;
+            --text-danger: #dc3545; --page-bg: #f0f4f9; --white: #ffffff;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--page-bg);
-            margin: 0;
-            padding: 1.5rem 0;
+            background-color: var(--page-bg); margin: 0; padding: 1.5rem 0;
         }
-
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-        }
-        
-        .date-filter-bar {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-        }
-
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+        .date-filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
         .filter-btn {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 99px;
-            cursor: pointer;
-            background-color: var(--white);
-            color: var(--text-dark);
-            transition: background-color 0.2s, color 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 99px;
+            cursor: pointer; background-color: var(--white); color: var(--text-dark);
+            transition: background-color 0.2s, color 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-
-        .filter-btn.active {
-            background-color: var(--text-dark);
-            color: var(--white);
-        }
-
-        .carousel-container {
-            position: relative;
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-        }
-
-        .carousel-container::-webkit-scrollbar {
-            display: none;
-        }
-
-        .carousel-track {
-            display: flex;
-            gap: 16px;
-            padding-bottom: 1rem;
-            cursor: grab;
-            user-select: none;
-            min-height: 260px;
-        }
-
-        .carousel-track.active {
-            cursor: grabbing;
-        }
-
+        .filter-btn.active { background-color: var(--text-dark); color: var(--white); }
+        .carousel-container { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .carousel-container::-webkit-scrollbar { display: none; }
+        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; }
+        .carousel-track.active { cursor: grabbing; }
         .class-card {
-            flex: 0 0 250px;
-            width: 250px;
-            height: 245px;
-            background-color: var(--white);
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            text-decoration: none;
-            color: inherit;
+            flex: 0 0 250px; width: 250px; height: 245px; background-color: var(--white);
+            border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); overflow: hidden;
+            display: flex; flex-direction: column; text-decoration: none; color: inherit;
             transition: transform 0.2s ease, box-shadow 0.2s, opacity 0.4s ease;
         }
-        
-        .class-card.removing {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-        
-        .card-thumbnail {
-            width: 100%;
-            height: 120px;
-            position: relative;
-            background-color: #e0e0e0;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .card-thumbnail img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
+        .class-card.removing { opacity: 0; transform: scale(0.9); }
+        .card-thumbnail { width: 100%; height: 120px; position: relative; background-color: #e0e0e0; overflow: hidden; flex-shrink: 0; }
+        .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
         .subject-tag {
             position: absolute; top: 10px; left: 10px; background-color: var(--primary-blue); color: var(--white);
             padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
         }
-
         .live-badge {
             position: absolute; bottom: 8px; left: 10px; background-color: rgba(255, 255, 255, 0.9); color: var(--text-danger);
             padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;
             display: none; align-items: center; backdrop-filter: blur(5px);
         }
-
         .live-badge.visible { display: flex; }
-
-        .live-badge::before {
-            content: ''; width: 7px; height: 7px; background-color: var(--text-danger);
-            border-radius: 50%; margin-right: 6px;
-        }
-
+        .live-badge::before { content: ''; width: 7px; height: 7px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
         .card-content { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
         .card-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
         .card-status { font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem; }
         .card-status strong { color: var(--text-dark); font-weight: 600; }
         .card-status .time-live { color: var(--text-danger); }
-        
         .join-now-btn {
             width: 100%; padding: 0.75rem; font-size: 0.95rem; font-weight: 600; color: var(--white);
             background-color: var(--primary-blue); border: none; border-radius: 10px; cursor: pointer;
             text-align: center; margin-top: auto; text-decoration: none;
         }
-
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
     </style>
 </head>
 <body>
-
     <div class="main-container">
         <div class="date-filter-bar">
             <button class="filter-btn active" data-day="today">Today</button>
@@ -187,23 +99,9 @@
             const card = document.createElement('div');
             card.className = 'class-card';
             card.id = `card-${classId}`;
-
-            card.innerHTML = `
-                <div class="card-thumbnail">
-                    <img src="${subjectImages[subject.toUpperCase()] || subjectImages.BIOLOGY}" alt="${subject}">
-                    <div class="subject-tag">${subject}</div>
-                    <div class="live-badge">LIVE</div>
-                </div>
-                <div class="card-content">
-                    <h3 class="card-title">${title}</h3>
-                    <p class="card-status"></p>
-                    <a href="3.html?id=${classId}" class="join-now-btn">Join Now</a>
-                </div>
-            `;
-            
+            card.innerHTML = `<div class="card-thumbnail"><img src="${subjectImages[subject.toUpperCase()] || subjectImages.BIOLOGY}" alt="${subject}"><div class="subject-tag">${subject}</div><div class="live-badge">LIVE</div></div><div class="card-content"><h3 class="card-title">${title}</h3><p class="card-status"></p><a href="3.html?id=${classId}" class="join-now-btn">Join Now</a></div>`;
             const statusElement = card.querySelector('.card-status');
             const liveBadge = card.querySelector('.live-badge');
-            
             const timerInfo = { id: classId, startTime, expireTime, statusElement, liveBadge };
             classesToUpdateTimers.push(timerInfo);
             updateClassStatus(timerInfo);
@@ -214,7 +112,6 @@
             const now = new Date();
             const startTime = new Date(classInfo.startTime);
             const diffMinutes = (startTime - now) / (1000 * 60);
-
             classInfo.liveBadge.classList.remove('visible');
             if (diffMinutes > 60) {
                 classInfo.statusElement.innerHTML = `Starts at <strong>${formatTime(startTime)}</strong>`;
@@ -231,13 +128,11 @@
         function checkExpiredClasses() {
             const now = new Date();
             const expiredClassesIds = [];
-
             classesToUpdateTimers.forEach(timerInfo => {
                 if (now >= new Date(timerInfo.expireTime)) {
                     expiredClassesIds.push(timerInfo.id);
                 }
             });
-
             if (expiredClassesIds.length > 0) {
                 expiredClassesIds.forEach(id => {
                     const cardToRemove = document.getElementById(`card-${id}`);
@@ -261,7 +156,6 @@
             const now = new Date();
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             let filterStartDate, filterEndDate;
-
             if (day === 'today') {
                 filterStartDate = todayStart;
                 filterEndDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
@@ -272,12 +166,10 @@
                 filterStartDate = new Date(todayStart.getTime() + 48 * 60 * 60 * 1000);
                 filterEndDate = new Date(filterStartDate.getTime() + 24 * 60 * 60 * 1000);
             }
-
             const classesForDay = allFetchedClasses.filter(c => {
                 const classStartTime = new Date(c.startTime);
                 return classStartTime >= filterStartDate && classStartTime < filterEndDate;
             });
-            
             if (classesForDay.length === 0) {
                 noClassesMessage.style.display = 'block';
                 carouselTrack.style.display = 'none';
@@ -293,7 +185,6 @@
         async function initializePage() {
             const urlParams = new URLSearchParams(window.location.search);
             const classFilter = urlParams.get('class');
-
             if (!classFilter) {
                 noClassesMessage.innerHTML = 'Please specify a class in the URL, e.g., ?class=12NEET';
                 noClassesMessage.style.display = 'block';
@@ -303,15 +194,15 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
             
-            // This is the query that requires the new index on (classLevel, expireTime)
+            // --- THIS IS THE FINAL, CORRECTED QUERY ---
+            // It matches the index on (classLevel ASC, startTime ASC)
             let query = db.collection("classes")
                 .where("classLevel", "==", classFilter)
-                .where("expireTime", ">=", todayStart.toISOString())
-                .orderBy("expireTime", "asc");
+                .where("startTime", ">=", todayStart.toISOString())
+                .orderBy("startTime", "asc");
 
             try {
                 const querySnapshot = await query.get();
-                
                 querySnapshot.forEach((doc) => {
                     const classData = doc.data();
                     classData.id = doc.id;
@@ -321,13 +212,12 @@
                 
                 displayClassesForDay('today');
                 setupCarouselDrag();
-
                 setInterval(updateAllTimers, 1000); 
                 setInterval(checkExpiredClasses, 5000);
 
             } catch (error) {
                 console.error("Firebase query failed:", error);
-                noClassesMessage.innerHTML = `Error loading classes. Please ensure the new Firestore index (on classLevel and expireTime) is created and enabled.`;
+                noClassesMessage.innerHTML = `<b>Error:</b> The required Firestore index is missing or still building. Please ensure the index on (classLevel, startTime) is created and enabled.`;
                 noClassesMessage.style.display = 'block';
             }
         }
