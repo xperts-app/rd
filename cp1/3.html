@@ -3,55 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SetTestLength</title>
+    <title>Set Test Length</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: auto; text-align: center; background: white; padding: 40px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #0056b3; margin-bottom: 30px; }
-        #chapterInfo { font-size: 1.2em; color: #555; margin-bottom: 40px; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .option-btn {
-            display: block; text-decoration: none; background-color: #28a745; color: white; padding: 20px; border-radius: 8px; font-size: 1.5em; font-weight: bold; transition: all 0.3s;
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #343a40;
+            --border-color: #dee2e6;
+            --font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        .option-btn:hover { background-color: #218838; transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            background: var(--card-bg);
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+
+        #chapterInfo {
+            font-size: 1.1em;
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .presets {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .preset-btn {
+            background-color: #e9ecef;
+            color: #495057;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background-color: #d8dde2;
+            border-color: #adb5bd;
+        }
+        
+        .custom-input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        #questionCountInput {
+            width: 100%;
+            max-width: 200px;
+            padding: 15px;
+            font-size: 2em;
+            text-align: center;
+            font-weight: bold;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            margin-bottom: 30px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #questionCountInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.2);
+        }
+        
+        /* Hide number input arrows */
+        #questionCountInput::-webkit-outer-spin-button,
+        #questionCountInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        #questionCountInput[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #startBtn {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        #startBtn:disabled {
+            background-color: #aeb5bc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>How many questions?</h1>
-        <p id="chapterInfo"></p>
-        <div id="optionsGrid" class="options-grid">
-            <!-- Options will be generated by JS -->
+        <h1>Set Test Length</h1>
+        <p id="chapterInfo">Loading test details...</p>
+
+        <div class="presets">
+            <button class="preset-btn" data-count="10">10</button>
+            <button class="preset-btn" data-count="40">40</button>
+            <button class="preset-btn" data-count="60">60</button>
+            <button class="preset-btn" data-count="100">100</button>
         </div>
+
+        <div class="custom-input-group">
+            <label for="questionCountInput">Or enter a custom amount</label>
+            <input type="number" id="questionCountInput" min="1" max="200" placeholder="e.g. 25">
+        </div>
+
+        <button id="startBtn" disabled>Start Test</button>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIG ---
+            const MIN_QUESTIONS = 1;
+            const MAX_QUESTIONS = 200;
+
+            // --- DOM ELEMENTS ---
+            const chapterInfo = document.getElementById('chapterInfo');
+            const questionCountInput = document.getElementById('questionCountInput');
+            const startBtn = document.getElementById('startBtn');
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            
+            // --- GET URL PARAMS ---
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
-            const subjectName = url_params.get('subject');
-            const chapterName = url_params.get('chapter');
-            const optionsGrid = document.getElementById('optionsGrid');
-            const chapterInfo = document.getElementById('chapterInfo');
+            const subjectName = urlParams.get('subject');
+            const chapterName = urlParams.get('chapter');
 
+            // --- VALIDATE PARAMS & INITIALIZE ---
             if (!className || !subjectName || !chapterName) {
-                chapterInfo.textContent = 'Error: Missing test information.';
-                return;
+                chapterInfo.textContent = 'Error: Missing Class, Subject, or Chapter details in URL.';
+                chapterInfo.style.color = '#dc3545'; // Error color
+                return; // Stop execution if params are missing
             }
 
-            chapterInfo.textContent = `Chapter: ${chapterName}`;
+            // Decode for display
+            const decodedChapter = decodeURIComponent(chapterName);
+            const decodedSubject = decodeURIComponent(subjectName);
+            chapterInfo.innerHTML = `<strong>${decodedChapter}</strong> <br> (${decodedSubject})`;
             
-            const questionCounts = [10, 40, 60, 100];
-            const baseLink = `4.html?class=${encodeURIComponent(className)}&subject=${encodeURIComponent(subjectName)}&chapter=${encodeURIComponent(chapterName)}`;
+            // --- EVENT LISTENERS ---
 
-            optionsGrid.innerHTML = ''; // Clear any placeholders
-            questionCounts.forEach(count => {
-                const a = document.createElement('a');
-                a.href = `${baseLink}&count=${count}`;
-                a.className = 'option-btn';
-                a.textContent = count;
-                optionsGrid.appendChild(a);
+            // For preset buttons
+            presetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const count = btn.dataset.count;
+                    questionCountInput.value = count;
+                    // Trigger the input event manually to run validation
+                    questionCountInput.dispatchEvent(new Event('input'));
+                });
+            });
+
+            // For the custom input field
+            questionCountInput.addEventListener('input', () => {
+                const count = parseInt(questionCountInput.value, 10);
+                // Check if the value is a number and within the defined range
+                if (count >= MIN_QUESTIONS && count <= MAX_QUESTIONS) {
+                    startBtn.disabled = false;
+                } else {
+                    startBtn.disabled = true;
+                }
+            });
+
+            // For the start button
+            startBtn.addEventListener('click', () => {
+                const count = questionCountInput.value;
+                if (!count || startBtn.disabled) return; // Extra safety check
+
+                // Re-encode parameters to ensure URL is safe
+                const encodedClass = encodeURIComponent(className);
+                const encodedSubject = encodeURIComponent(subjectName);
+                const encodedChapter = encodeURIComponent(chapterName);
+
+                // Construct the final URL and redirect
+                const destinationUrl = `4.html?class=${encodedClass}&subject=${encodedSubject}&chapter=${encodedChapter}&count=${count}`;
+                window.location.href = destinationUrl;
             });
         });
     </script>
