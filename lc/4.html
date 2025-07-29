@@ -3,175 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEET 2024 Documents</title>
+    <title>Admin Dashboard</title>
     <style>
         :root {
-            --page-bg: #f0f2f5;
-            --container-bg: #ffffff;
-            --text-dark: #212529;
-            --text-light: #5f6368;
-            --border-color: #e8eaed;
+            --primary-blue: #0d6efd; --danger-red: #dc3545; --light-gray: #f8f9fa;
+            --border-color: #e8eaed; --text-dark: #212529; --text-light: #5f6368;
         }
-
-        /* --- Page & Container Setup --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--page-bg);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            padding: 2rem 0;
+            background-color: #e9ecef; margin: 0; display: flex; justify-content: center; padding: 2rem 0;
         }
-
         .mobile-container {
-            width: 370px;
-            max-width: 100%;
-            background-color: var(--container-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            min-height: 80vh;
-            display: flex;
-            flex-direction: column;
+            width: 370px; max-width: 100%; background-color: #fff; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); min-height: 80vh;
+            display: flex; flex-direction: column; position: relative;
         }
-
-        /* --- Header Styling --- */
         .header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem 1.5rem;
+            display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+        }
+        .header .title { font-size: 1.25rem; font-weight: 600; margin: 0; color: var(--text-dark); }
+        .content { padding: 0.5rem 1.5rem; overflow-y: auto; }
+        .status-heading {
+            font-size: 1.1rem; font-weight: 600; color: var(--text-dark); margin: 0;
+            padding: 1.5rem 0 0.75rem 0;
+        }
+        .class-item {
+            display: flex; align-items: center; gap: 1rem; padding: 1rem 0;
             border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
         }
-
-        .header .back-arrow {
-            font-size: 1.75rem;
-            font-weight: bold;
-            text-decoration: none;
-            color: var(--text-dark);
-        }
-
-        .header .title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0;
-            color: var(--text-dark);
-        }
-
-        /* --- Document List Styling --- */
-        .content {
-            padding: 1rem 1.5rem;
-            overflow-y: auto;
-        }
-
-        .subject-heading {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin: 0;
-            padding-top: 1.5rem; /* Space above each subject */
-            padding-bottom: 0.75rem;
-        }
-
-        .document-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem 0;
-            text-decoration: none;
-            color: var(--text-light);
-            border-bottom: 1px solid var(--border-color);
+        .class-item:last-child { border-bottom: none; }
+        .class-icon svg { width: 28px; height: 28px; fill: var(--text-light); }
+        .class-details { flex-grow: 1; }
+        .class-title { font-size: 1rem; font-weight: 600; color: var(--text-dark); margin: 0 0 4px 0; }
+        .class-subtitle { font-size: 0.85rem; color: var(--text-light); margin: 0; }
+        .class-actions { display: flex; gap: 0.5rem; }
+        .action-btn {
+            background: none; border: none; cursor: pointer; padding: 0.5rem;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
             transition: background-color 0.2s;
         }
-        .document-item:hover {
-            background-color: #f8f9fa;
+        .action-btn:hover { background-color: #e9ecef; }
+        .action-btn svg { width: 18px; height: 18px; }
+        .edit-btn svg { fill: var(--primary-blue); }
+        .delete-btn svg { fill: var(--danger-red); }
+        .fab {
+            position: absolute; bottom: 20px; right: 20px;
+            width: 56px; height: 56px; background-color: var(--primary-blue);
+            border-radius: 50%; color: #fff; text-decoration: none;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
         }
-        .document-item:last-child {
-            border-bottom: none;
-        }
-
-        .doc-icon svg {
-            width: 28px;
-            height: 28px;
-            fill: var(--text-light);
-        }
-
-        .doc-title {
-            font-size: 1rem;
-            font-weight: 500;
-        }
-
+        .fab:hover { transform: scale(1.05); }
+        .fab svg { width: 24px; height: 24px; fill: #fff; }
+        #loader { text-align: center; padding: 3rem; color: var(--text-light); }
     </style>
 </head>
 <body>
-
     <div class="mobile-container">
         <header class="header">
-            <a href="#" onclick="history.back(); return false;" class="back-arrow">←</a>
-            <h1 class="title">NEET 2024</h1>
+            <h1 class="title">Admin Dashboard</h1>
         </header>
-
-        <main id="document-list" class="content">
-            <!-- Documents will be dynamically inserted here -->
+        <main id="class-list" class="content">
+            <div id="loader">Loading classes...</div>
         </main>
+        <a href="1.html" class="fab" title="Schedule New Class">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </a>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        // --- DATA SOURCE ---
-        // This is a simple array of document objects.
-        // You can easily replace this with a Firestore fetch call in the future.
-        const documentsData = [
-            { subject: "English", title: "2024-NEET-PYQ 1", url: "#link-to-english-pyq1" },
-            { subject: "English", title: "2024-NEET-PYQ 2", url: "#link-to-english-pyq2" },
-            { subject: "Hindi", title: "2024-NEET-PYQ 1", url: "#link-to-hindi-pyq1" },
-            { subject: "Hindi", title: "2024-NEET-PYQ 2", url: "#link-to-hindi-pyq2" },
-            { subject: "Physics", title: "Chapter 1: Units & Measurement Notes", url: "#" },
-            { subject: "Physics", title: "Chapter 2: Kinematics Notes", url: "#" },
-        ];
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs", authDomain: "custom-practices.firebaseapp.com",
+            projectId: "custom-practices", storageBucket: "custom-practices.firebasestorage.app",
+            messagingSenderId: "636700937539", appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-        // --- RENDERING LOGIC ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const listContainer = document.getElementById('document-list');
-            if (!listContainer) return;
-
-            // 1. Group documents by subject
-            const groupedBySubject = documentsData.reduce((acc, doc) => {
-                // If the subject isn't a key in our accumulator object yet, create it
-                if (!acc[doc.subject]) {
-                    acc[doc.subject] = [];
+        async function fetchAndRenderClasses() {
+            const listContainer = document.getElementById('class-list');
+            try {
+                const querySnapshot = await db.collection("classes").orderBy("startTime", "desc").get();
+                if (querySnapshot.empty) {
+                    listContainer.innerHTML = '<div id="loader">No classes scheduled yet.</div>';
+                    return;
                 }
-                // Push the current document into the correct subject's array
-                acc[doc.subject].push(doc);
-                return acc;
-            }, {});
 
-            // 2. Build the HTML string
-            let htmlContent = '';
-            const docIconSvg = `
-                <div class="doc-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-                    </svg>
-                </div>`;
+                const liveClasses = [], upcomingClasses = [], finishedClasses = [];
+                const now = new Date();
 
-            for (const subject in groupedBySubject) {
-                // Add the subject heading
-                htmlContent += `<h2 class="subject-heading">${subject}</h2>`;
-
-                // Add each document item under that subject
-                groupedBySubject[subject].forEach(doc => {
-                    htmlContent += `
-                        <a href="${doc.url}" class="document-item">
-                            ${docIconSvg}
-                            <span class="doc-title">${doc.title}</span>
-                        </a>
-                    `;
+                querySnapshot.forEach(doc => {
+                    const classData = { id: doc.id, ...doc.data() };
+                    const start = new Date(classData.startTime), end = new Date(classData.expireTime);
+                    if (now >= start && now <= end) liveClasses.push(classData);
+                    else if (now < start) upcomingClasses.push(classData);
+                    else finishedClasses.push(classData);
                 });
-            }
 
-            // 3. Set the container's HTML
-            listContainer.innerHTML = htmlContent;
-        });
+                let htmlContent = '';
+                if (liveClasses.length > 0) htmlContent += renderGroup('Live Classes', liveClasses);
+                if (upcomingClasses.length > 0) htmlContent += renderGroup('Upcoming Classes', upcomingClasses);
+                if (finishedClasses.length > 0) htmlContent += renderGroup('Finished Classes', finishedClasses);
+                
+                listContainer.innerHTML = htmlContent;
+
+            } catch (error) {
+                console.error("Error fetching classes: ", error);
+                listContainer.innerHTML = '<div id="loader">Error loading classes.</div>';
+            }
+        }
+
+        function renderGroup(title, classes) {
+            let groupHtml = `<h2 class="status-heading">${title}</h2>`;
+            classes.forEach(data => {
+                const timeOpts = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const timeString = new Date(data.startTime).toLocaleString([], timeOpts);
+                groupHtml += `
+                    <div class="class-item" id="item-${data.id}">
+                        <div class="class-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>
+                        </div>
+                        <div class="class-details">
+                            <p class="class-title">${data.title}</p>
+                            <p class="class-subtitle">${data.classLevel} | ${data.subject} | ${timeString}</p>
+                        </div>
+                        <div class="class-actions">
+                            <a href="1.html?edit=${data.id}" class="action-btn edit-btn" title="Edit Class">
+                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>
+                            </a>
+                            <button onclick="deleteClass('${data.id}')" class="action-btn delete-btn" title="Delete Class">
+                                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            return groupHtml;
+        }
+
+        async function deleteClass(classId) {
+            if (confirm("Are you sure you want to permanently delete this class?")) {
+                try {
+                    await db.collection("classes").doc(classId).delete();
+                    const itemToRemove = document.getElementById(`item-${classId}`);
+                    if (itemToRemove) itemToRemove.remove();
+                } catch (error) {
+                    console.error("Error removing document: ", error);
+                    alert("Could not delete class. Please try again.");
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', fetchAndRenderClasses);
     </script>
 </body>
 </html>
