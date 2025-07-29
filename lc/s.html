@@ -228,12 +228,10 @@
         
         function updateAllTimers() { classesToUpdateTimers.forEach(updateClassStatus); }
 
-        // --- FIX: This function now correctly finds and removes expired cards ---
         function checkExpiredClasses() {
             const now = new Date();
             const expiredClassesIds = [];
 
-            // Find which classes have expired
             classesToUpdateTimers.forEach(timerInfo => {
                 if (now >= new Date(timerInfo.expireTime)) {
                     expiredClassesIds.push(timerInfo.id);
@@ -241,23 +239,18 @@
             });
 
             if (expiredClassesIds.length > 0) {
-                // Remove from the DOM with a nice animation
                 expiredClassesIds.forEach(id => {
                     const cardToRemove = document.getElementById(`card-${id}`);
                     if (cardToRemove) {
                         cardToRemove.classList.add('removing');
-                        // Wait for animation to finish before removing the element fully
                         setTimeout(() => {
                             cardToRemove.remove();
-                            // Check if the container is now empty
                             if (carouselTrack.children.length === 0) {
                                 noClassesMessage.style.display = 'block';
                             }
                         }, 400);
                     }
                 });
-
-                // Update the data arrays
                 allFetchedClasses = allFetchedClasses.filter(c => !expiredClassesIds.includes(c.id));
                 classesToUpdateTimers = classesToUpdateTimers.filter(t => !expiredClassesIds.includes(t.id));
             }
@@ -309,20 +302,12 @@
 
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
-
+            
+            // This is the query that requires the new index on (classLevel, expireTime)
             let query = db.collection("classes")
                 .where("classLevel", "==", classFilter)
-                .where("expireTime", ">=", todayStart.toISOString()) // Fetch all unexpired classes
+                .where("expireTime", ">=", todayStart.toISOString())
                 .orderBy("expireTime", "asc");
-
-            // You might need an index on (classLevel, expireTime asc) for the query above.
-            // If the console shows an error, click the link it provides to create it.
-            // A safer query that uses the existing index is:
-            // let query = db.collection("classes")
-            //     .where("classLevel", "==", classFilter)
-            //     .where("startTime", ">=", todayStart.toISOString())
-            //     .orderBy("startTime", "asc");
-
 
             try {
                 const querySnapshot = await query.get();
@@ -332,7 +317,7 @@
                     classData.id = doc.id;
                     classData.cardElement = createClassCard(classData, doc.id);
                     allFetchedClasses.push(classData);
-});
+                });
                 
                 displayClassesForDay('today');
                 setupCarouselDrag();
@@ -342,7 +327,7 @@
 
             } catch (error) {
                 console.error("Firebase query failed:", error);
-                noClassesMessage.innerHTML = `Error loading classes. Please check the Firestore index and console for details.`;
+                noClassesMessage.innerHTML = `Error loading classes. Please ensure the new Firestore index (on classLevel and expireTime) is created and enabled.`;
                 noClassesMessage.style.display = 'block';
             }
         }
