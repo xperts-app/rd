@@ -23,26 +23,26 @@
         .filter-btn.active { background-color: var(--text-dark); color: var(--white); }
         .carousel-container { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .carousel-container::-webkit-scrollbar { display: none; }
-        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 280px; }
+        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 260px; }
         
-        /* --- FINAL, PIXEL-PERFECT CARD STYLING --- */
+        /* --- FINAL, CORRECTED CARD STYLING --- */
         .class-card {
             flex: 0 0 250px;
             width: 250px;
+            height: 245px; /* STRICT HEIGHT REQUIREMENT */
             background-color: var(--white);
             border-radius: 24px; 
             box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1);
+            padding: 12px;
+            /* CRITICAL FIX: Flexbox layout to manage content within a fixed height */
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
-            /* Padding for the entire card to contain all elements */
-            padding: 12px;
         }
         .card-thumbnail { 
             width: 100%; height: 120px; position: relative; background-color: #e0e0e0; 
             overflow: hidden; flex-shrink: 0;
-            /* The thumbnail itself is a rounded rectangle inside the card */
             border-radius: 16px; 
         }
         .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
@@ -61,29 +61,29 @@
         .live-badge::before { content: ''; width: 8px; height: 8px; background-color: var(--text-danger); border-radius: 50%; margin-right: 6px; }
         
         .card-content {
-            padding-top: 16px; /* Space between thumbnail and title */
+            padding-top: 16px;
+            /* CRITICAL FIX: This makes the content area flexible to push the button down */
             display: flex;
             flex-direction: column;
             flex-grow: 1; 
         }
         .card-title { font-size: 1.2rem; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; color: var(--text-dark); }
         .card-status { 
-            font-size: 0.95rem; color: var(--text-light);
-            margin-bottom: 1.5rem;
+            font-size: 0.95rem; 
+            color: var(--text-light);
+            margin-bottom: 1rem;
         }
         .card-status .time { color: var(--text-danger); font-weight: 700; }
         
         .join-now-btn {
-            /* REMOVED width: 100% */
-            padding: 0.8rem 2.5rem; /* Sized by its own padding */
-            font-size: 1rem; font-weight: 600; color: var(--white);
+            width: 100%;
+            padding: 0.8rem; font-size: 1rem; font-weight: 600; color: var(--white);
             background-color: var(--primary-blue); border: none; cursor: pointer;
-            text-decoration: none;
+            text-align: center; text-decoration: none;
             border-radius: 99px;
-            margin-top: auto; /* Pushes to the bottom */
-            align-self: center; /* Centers it horizontally */
+            /* CRITICAL FIX: This pushes the button to the bottom, NEVER hiding it. */
+            margin-top: auto; 
         }
-
         #no-classes-message { width: 100%; text-align: center; color: var(--text-light); padding: 4rem 0; font-size: 1.2rem; display: none; }
     </style>
 </head>
@@ -142,7 +142,9 @@
             } else if (diffMinutes > 0) {
                 classInfo.statusElement.innerHTML = `Starts in <strong>${Math.round(diffMinutes)} min</strong>`;
             } else {
-                classInfo.statusElement.innerHTML = `Started at <span class="time">${timeString}</span>`;
+                // CORRECTED LOGIC: Show "Started X min ago"
+                const minutesAgo = Math.round(Math.abs(diffMinutes));
+                classInfo.statusElement.innerHTML = `Started <span class="time">${minutesAgo} min ago</span>`;
                 classInfo.liveBadge.classList.add('visible');
             }
         }
