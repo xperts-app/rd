@@ -29,9 +29,11 @@
             flex: 0 0 250px; width: 250px; height: 245px; background-color: var(--white);
             border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); overflow: hidden;
             display: flex; flex-direction: column; text-decoration: none; color: inherit;
-            transition: transform 0.2s ease, box-shadow 0.2s, opacity 0.4s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s, opacity 0.4s ease, height 0.4s ease, padding 0.4s ease, margin 0.4s ease;
         }
-        .class-card.removing { opacity: 0; transform: scale(0.9); }
+        .class-card.removing {
+            opacity: 0; transform: scale(0.9); height: 0; padding: 0; margin: 0;
+        }
         .card-thumbnail { width: 100%; height: 120px; position: relative; background-color: #e0e0e0; overflow: hidden; flex-shrink: 0; }
         .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
         .subject-tag {
@@ -128,11 +130,13 @@
         function checkExpiredClasses() {
             const now = new Date();
             const expiredClassesIds = [];
+            
             classesToUpdateTimers.forEach(timerInfo => {
                 if (now >= new Date(timerInfo.expireTime)) {
                     expiredClassesIds.push(timerInfo.id);
                 }
             });
+
             if (expiredClassesIds.length > 0) {
                 expiredClassesIds.forEach(id => {
                     const cardToRemove = document.getElementById(`card-${id}`);
@@ -143,9 +147,11 @@
                             if (carouselTrack.children.length === 0) {
                                 noClassesMessage.style.display = 'block';
                             }
-                        }, 400);
+                        }, 500); // Wait for CSS animation
                     }
                 });
+                
+                // Update the master data arrays
                 allFetchedClasses = allFetchedClasses.filter(c => !expiredClassesIds.includes(c.id));
                 classesToUpdateTimers = classesToUpdateTimers.filter(t => !expiredClassesIds.includes(t.id));
             }
@@ -194,12 +200,13 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
             
-            // --- THIS IS THE FINAL, CORRECTED QUERY ---
-            // It matches the index on (classLevel ASC, startTime ASC)
+            // --- THE FINAL, CORRECTED QUERY ---
+            // This query fetches all classes that have not yet expired and orders them.
+            // It REQUIRES the index on (classLevel ASC, expireTime ASC).
             let query = db.collection("classes")
                 .where("classLevel", "==", classFilter)
-                .where("startTime", ">=", todayStart.toISOString())
-                .orderBy("startTime", "asc");
+                .where("expireTime", ">=", todayStart.toISOString())
+                .orderBy("expireTime", "asc");
 
             try {
                 const querySnapshot = await query.get();
@@ -217,7 +224,7 @@
 
             } catch (error) {
                 console.error("Firebase query failed:", error);
-                noClassesMessage.innerHTML = `<b>Error:</b> The required Firestore index is missing or still building. Please ensure the index on (classLevel, startTime) is created and enabled.`;
+                noClassesMessage.innerHTML = `<b>Error:</b> Could not load classes. Please ensure the Firestore index for <b>(classLevel ASC, expireTime ASC)</b> is created and enabled.`;
                 noClassesMessage.style.display = 'block';
             }
         }
