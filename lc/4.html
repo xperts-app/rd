@@ -3,146 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>NEET 2024 Documents</title>
     <style>
         :root {
-            --primary-blue: #0d6efd; --danger-red: #dc3545; --warning-orange: #fd7e14;
-            --success-green: #198754; --light-gray: #f8f9fa; --border-color: #dee2e6;
-            --text-dark: #212529; --text-light: #6c757d;
+            --page-bg: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-dark: #212529;
+            --text-light: #5f6368;
+            --border-color: #e8eaed;
         }
+
+        /* --- Page & Container Setup --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--light-gray); margin: 0; padding: 2rem;
+            background-color: var(--page-bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 0;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
+
+        .mobile-container {
+            width: 370px;
+            max-width: 100%;
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header Styling --- */
         .header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
         }
-        h1 { color: var(--text-dark); margin: 0; }
-        .schedule-btn {
-            background-color: var(--primary-blue); color: #fff; text-decoration: none;
-            padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600;
+
+        .header .back-arrow {
+            font-size: 1.75rem;
+            font-weight: bold;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .header .title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-dark);
+        }
+
+        /* --- Document List Styling --- */
+        .content {
+            padding: 1rem 1.5rem;
+            overflow-y: auto;
+        }
+
+        .subject-heading {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+            padding-top: 1.5rem; /* Space above each subject */
+            padding-bottom: 0.75rem;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            text-decoration: none;
+            color: var(--text-light);
+            border-bottom: 1px solid var(--border-color);
             transition: background-color 0.2s;
         }
-        .schedule-btn:hover { background-color: #0b5ed7; }
-        .table-container {
-            background-color: #fff; border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden;
+        .document-item:hover {
+            background-color: #f8f9fa;
         }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); }
-        thead tr { background-color: var(--light-gray); }
-        th { font-weight: 600; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
-        tbody tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background-color: #f1f3f5; }
-        .status {
-            padding: 5px 12px; border-radius: 99px; font-size: 0.8rem;
-            font-weight: 700; color: #fff; text-align: center;
+        .document-item:last-child {
+            border-bottom: none;
         }
-        .status-live { background-color: var(--danger-red); }
-        .status-upcoming { background-color: var(--warning-orange); }
-        .status-finished { background-color: var(--success-green); }
-        .actions-cell { display: flex; gap: 0.75rem; }
-        .action-btn {
-            background: none; border: none; cursor: pointer; padding: 0.5rem;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            transition: background-color 0.2s;
+
+        .doc-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--text-light);
         }
-        .action-btn:hover { background-color: #e9ecef; }
-        .action-btn svg { width: 18px; height: 18px; }
-        .edit-btn svg { fill: var(--primary-blue); }
-        .delete-btn svg { fill: var(--danger-red); }
-        #loader { text-align: center; padding: 3rem; color: var(--text-light); }
+
+        .doc-title {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Class Dashboard</h1>
-            <a href="1.html" class="schedule-btn">Schedule New Class</a>
-        </div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Title</th><th>Class</th><th>Subject</th>
-                        <th>Start Time</th><th>End Time</th><th>Status</th><th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="classes-table-body">
-                    <tr><td colspan="7" id="loader">Loading classes...</td></tr>
-                </tbody>
-            </table>
-        </div>
+
+    <div class="mobile-container">
+        <header class="header">
+            <a href="#" onclick="history.back(); return false;" class="back-arrow">←</a>
+            <h1 class="title">NEET 2024</h1>
+        </header>
+
+        <main id="document-list" class="content">
+            <!-- Documents will be dynamically inserted here -->
+        </main>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBrdCOyTrQ_uU4jID8hWzCQzaXilhAcGcs", authDomain: "custom-practices.firebaseapp.com",
-            projectId: "custom-practices", storageBucket: "custom-practices.firebasestorage.app",
-            messagingSenderId: "636700937539", appId: "1:636700937539:web:d6ec9d88453e15481d33f6",
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // --- DATA SOURCE ---
+        // This is a simple array of document objects.
+        // You can easily replace this with a Firestore fetch call in the future.
+        const documentsData = [
+            { subject: "English", title: "2024-NEET-PYQ 1", url: "#link-to-english-pyq1" },
+            { subject: "English", title: "2024-NEET-PYQ 2", url: "#link-to-english-pyq2" },
+            { subject: "Hindi", title: "2024-NEET-PYQ 1", url: "#link-to-hindi-pyq1" },
+            { subject: "Hindi", title: "2024-NEET-PYQ 2", url: "#link-to-hindi-pyq2" },
+            { subject: "Physics", title: "Chapter 1: Units & Measurement Notes", url: "#" },
+            { subject: "Physics", title: "Chapter 2: Kinematics Notes", url: "#" },
+        ];
 
-        function getStatus(startTime, expireTime) {
-            const now = new Date(), start = new Date(startTime), end = new Date(expireTime);
-            if (now >= start && now <= end) return '<span class="status status-live">Live</span>';
-            if (now < start) return '<span class="status status-upcoming">Upcoming</span>';
-            return '<span class="status status-finished">Finished</span>';
-        }
+        // --- RENDERING LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const listContainer = document.getElementById('document-list');
+            if (!listContainer) return;
 
-        async function fetchAllClasses() {
-            const tableBody = document.getElementById('classes-table-body');
-            try {
-                const querySnapshot = await db.collection("classes").orderBy("startTime", "desc").get();
-                tableBody.innerHTML = '';
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="7" id="loader">No classes scheduled yet.</td></tr>';
-                    return;
+            // 1. Group documents by subject
+            const groupedBySubject = documentsData.reduce((acc, doc) => {
+                // If the subject isn't a key in our accumulator object yet, create it
+                if (!acc[doc.subject]) {
+                    acc[doc.subject] = [];
                 }
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    const row = document.createElement('tr');
-                    row.id = `row-${doc.id}`;
-                    const timeOpts = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-                    row.innerHTML = `
-                        <td>${data.title}</td><td>${data.classLevel}</td><td>${data.subject}</td>
-                        <td>${new Date(data.startTime).toLocaleString([], timeOpts)}</td>
-                        <td>${new Date(data.expireTime).toLocaleString([], timeOpts)}</td>
-                        <td>${getStatus(data.startTime, data.expireTime)}</td>
-                        <td class="actions-cell">
-                            <a href="1.html?edit=${doc.id}" class="action-btn edit-btn" title="Edit Class">
-                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>
-                            </a>
-                            <button onclick="deleteClass('${doc.id}')" class="action-btn delete-btn" title="Delete Class">
-                                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
-                            </button>
-                        </td>
+                // Push the current document into the correct subject's array
+                acc[doc.subject].push(doc);
+                return acc;
+            }, {});
+
+            // 2. Build the HTML string
+            let htmlContent = '';
+            const docIconSvg = `
+                <div class="doc-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                    </svg>
+                </div>`;
+
+            for (const subject in groupedBySubject) {
+                // Add the subject heading
+                htmlContent += `<h2 class="subject-heading">${subject}</h2>`;
+
+                // Add each document item under that subject
+                groupedBySubject[subject].forEach(doc => {
+                    htmlContent += `
+                        <a href="${doc.url}" class="document-item">
+                            ${docIconSvg}
+                            <span class="doc-title">${doc.title}</span>
+                        </a>
                     `;
-                    tableBody.appendChild(row);
                 });
-            } catch (error) {
-                console.error("Error fetching classes: ", error);
-                tableBody.innerHTML = '<tr><td colspan="7" id="loader">Error loading classes.</td></tr>';
             }
-        }
 
-        async function deleteClass(classId) {
-            if (confirm("Are you sure you want to permanently delete this class?")) {
-                try {
-                    await db.collection("classes").doc(classId).delete();
-                    document.getElementById(`row-${classId}`).remove();
-                } catch (error) {
-                    console.error("Error removing document: ", error);
-                    alert("Could not delete class. Please try again.");
-                }
-            }
-        }
-        document.addEventListener('DOMContentLoaded', fetchAllClasses);
+            // 3. Set the container's HTML
+            listContainer.innerHTML = htmlContent;
+        });
     </script>
 </body>
 </html>
