@@ -72,7 +72,6 @@
             let subjectData = {};
 
             const subjectIcons = {
-                CHEM: `<svg width="24" height="24" ...></svg>`, // Add your SVG code here
                 DEFAULT: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3L4 9L12 15L20 9L12 3Z" stroke="#4263eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10.5L12 16L5 10.5" stroke="#4263eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 15L12 20L5 15" stroke="#4263eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
                 MISCELLANEOUS: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.364 5.63604C19.9261 7.19821 20.7071 8.8386 20.7071 11C20.7071 14.866 17.5731 18 13.7071 18C12.5458 18 11.454 17.7187 10.5 17.2281M5.63604 18.364C7.19821 19.9261 8.8386 20.7071 11 20.7071C14.866 20.7071 18 17.5731 18 13.7071C18 12.5458 17.7187 11.454 17.2281 10.5M10.5 6.77187C11.454 6.28126 12.5458 6 13.7071 6C17.5731 6 20.7071 9.13401 20.7071 13M6.77187 13.5C6.28126 12.546 6 11.4542 6 10.2929C6 6.4269 9.13401 3.29289 13 3.29289C14.1614 3.29289 15.2533 3.57415 16.2 4.06476M11.636 12.364L16 8L8 16" stroke="#4263eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
             };
@@ -86,12 +85,12 @@
                     renderTabs(subjects);
                     renderAllContent();
                     setupEventListeners();
-                    switchTab(subjects[0]); // Activate first tab by default
+                    switchTab(subjects[0]);
                 }
             }
 
             function processData() {
-                subjectData = {}; // Reset before processing
+                subjectData = {};
                 for (const className in improvementBook) {
                     for (const subjectName in improvementBook[className]) {
                         if (!subjectData[subjectName]) subjectData[subjectName] = {};
@@ -121,14 +120,10 @@
             function renderContentForSubject(subject) {
                 const chapters = subjectData[subject];
                 if (!chapters) return '';
-
                 let subjectHTML = '';
                 for (const chapter in chapters) {
                     const questions = chapters[chapter];
                     const totalMistakes = questions.length;
-                    const clearedMistakes = questions.filter(q => improvementProgress[q.id]).length;
-                    const progressPercent = totalMistakes > 0 ? (clearedMistakes / totalMistakes) * 100 : 0;
-
                     subjectHTML += `
                     <details class="module" data-subject="${subject}" data-chapter="${chapter}">
                         <summary>
@@ -139,16 +134,15 @@
                         <div class="module-actions">
                             <div class="action-card">
                                 <div class="mistake-progress">
-                                    <p>${clearedMistakes}/${totalMistakes} Mistakes</p>
-                                    <div class="progress-track"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
+                                    <p>${totalMistakes} Mistakes</p>
                                 </div>
                                 <div class="action-buttons">
                                     <div class="btn-group">
                                         <button class="btn btn-outline btn-review">Review</button>
                                         <button class="btn btn-solid btn-reattempt">Re-attempt</button>
                                     </div>
-                                    <button class="btn-clear">
-                                        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#999" stroke-width="2"/></svg>
+                                    <button class="btn-clear btn-mastered" title="Mark as Mastered">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                     </button>
                                 </div>
                             </div>
@@ -162,16 +156,14 @@
                 subjectTabsContainer.addEventListener('click', e => {
                     if (e.target.matches('.tab-btn')) switchTab(e.target.dataset.subject);
                 });
-
                 mainContentContainer.addEventListener('click', e => {
                     const moduleElement = e.target.closest('.module');
                     if (!moduleElement) return;
                     const subject = moduleElement.dataset.subject;
                     const chapter = moduleElement.dataset.chapter;
-
                     if (e.target.closest('.btn-review')) handleReview(subject, chapter);
                     if (e.target.closest('.btn-reattempt')) handleReattempt(subject, chapter);
-                    if (e.target.closest('.btn-clear')) handleClear(subject, chapter);
+                    if (e.target.closest('.btn-mastered')) handleClear(subject, chapter);
                 });
             }
 
@@ -183,36 +175,28 @@
 
             function handleReattempt(subject, chapter) {
                 const questions = subjectData[subject][chapter];
-                const testSession = {
-                    questions: questions,
-                    userAnswers: new Array(questions.length).fill(-1),
-                    startTime: new Date().toISOString()
-                };
-                sessionStorage.setItem('testSession', JSON.stringify(testSession));
-                window.location.href = `4.html?source=improvement&count=${questions.length}`;
+                // Prepare the session with only the mistaken questions
+                const testSessionData = { questions: questions };
+                sessionStorage.setItem('testSession', JSON.stringify(testSessionData));
+                // Redirect to 4.html with a special parameter to trigger re-attempt mode
+                window.location.href = `4.html?source=improvement`;
             }
 
             function handleClear(subject, chapter) {
                 if (!confirm(`Are you sure you want to remove all mistakes for "${chapter}"? This cannot be undone.`)) return;
-
-                // Find the class this chapter belongs to (a bit complex but necessary)
                 let classKey;
-                for(const className in improvementBook) {
-                    if(improvementBook[className][subject] && improvementBook[className][subject][chapter]) {
+                for (const className in improvementBook) {
+                    if (improvementBook[className][subject] && improvementBook[className][subject][chapter]) {
                         classKey = className;
                         break;
                     }
                 }
-                
                 if (classKey) {
                     delete improvementBook[classKey][subject][chapter];
-                    // Clean up empty subjects/classes if needed
-                    if(Object.keys(improvementBook[classKey][subject]).length === 0) delete improvementBook[classKey][subject];
-                    if(Object.keys(improvementBook[classKey]).length === 0) delete improvementBook[classKey];
-
+                    if (Object.keys(improvementBook[classKey][subject]).length === 0) delete improvementBook[classKey][subject];
+                    if (Object.keys(improvementBook[classKey]).length === 0) delete improvementBook[classKey];
                     localStorage.setItem('improvementBook', JSON.stringify(improvementBook));
-                    // Re-initialize the whole view
-                    init();
+                    init(); // Re-render the entire view
                 }
             }
 
@@ -224,7 +208,6 @@
             function showEmptyState() {
                 mainContentContainer.innerHTML = `<div class="empty-state"><h3>Your Improvement Book is Empty</h3><p>Keep practicing! Mistakes will show up here.</p></div>`;
             }
-
             init();
         });
     </script>
