@@ -3,38 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scheduled Classes</title>
+    <title>Live Class Schedule</title>
     <style>
-        :root {
-            --primary-blue: #0d6efd; --text-dark: #212529; --text-light: #6c757d;
-            --text-danger: #dc3545; --page-bg: #f0f4f9; --white: #ffffff;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--page-bg); margin: 0; padding: 1.5rem 0;
-        }
-        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
-        .date-filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
-        .filter-btn {
-            padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 99px;
-            cursor: pointer; background-color: var(--white); color: var(--text-dark);
-            transition: background-color 0.2s, color 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .filter-btn.active { background-color: var(--text-dark); color: var(--white); }
-        .carousel-container { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        .carousel-container::-webkit-scrollbar { display: none; }
-        .carousel-track { display: flex; gap: 16px; padding-bottom: 1rem; cursor: grab; user-select: none; min-height: 280px; align-items: flex-start; }
-        
-        /* --- FINAL, PIXEL-PERFECT CARD STYLING --- */
-        .class-card {
-            flex: 0 0 250px;
-            width: 250px;
-            /* CRITICAL FIX: REMOVED fixed height. The card is now flexible. */
-            background-color: var(--white);
-            border-radius: 24px; 
-            box-shadow: 0 6px 20px rgba(60, 64, 67, 0.1);
-            padding: 12px; /* Padding for the entire card */
+        body { font-family: sans-serif; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        .schedule-card {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            
+            /* --- MODIFICATIONS START HERE --- */
+            
+            height: 150px; /* Set a fixed height */
+            box-sizing: border-box; /* Ensures padding is included in the height */
+            
+            /* Use Flexbox to align content vertically */
             display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Pushes title to top and last item to bottom */
+            
+            /* --- MODIFICATIONS END HERE --- */
+        }
+        .schedule-card h2 { margin-top: 0; margin-bottom: 10px; color: #007bff; }
+        .schedule-card p { margin: 2px 0; color: #555; } /* Reduced margin for better fit */
+        .schedule-card strong { color: #333; }
+        #loading { text-align: center; font-size: 18px; color: #888; }
+        #no-classes { text-align: center; font-size: 18px; color: #888; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Upcoming & Live Class Schedules</h1>
+        <a href="index.html">← Back to Home</a>
+        <hr>
+        <div id="schedule-container">
+            <p id="loading">Loading schedules...</p>
+            <p id="no-classes">There are no upcoming classes at the moment.</p>
+        </div>
+    </div>
+
+    <!-- SCRIPT (No changes needed here) -->
+    <script type="module">
+        import { db } from './firebase-init.js';
+        import { collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const scheduleContainer = document.getElementById('schedule-container');
+        const loadingMessage = document.getElementById('loading');
+        const noClassesMessage = document.getElementById('no-classes');
+
+        const nowAsISOString = new Date().toISOString();
+
+        const schedulesRef = collection(db, "schedules");
+        const q = query(
+            schedulesRef, 
+            where("expireTime", ">", nowAsISOString),
+            orderBy("expireTime"),
+            orderBy("startTime")
+        );
+
+        onSnapshot(q, (snapshot) => {
+            loadingMessage.style.display = 'none';
+            scheduleContainer.innerHTML = ''; 
+
+            if (snapshot.empty) {
+                noClassesMessage.style.display = 'block';
+            } else {
+                noClassesMessage.style.display = 'none';
+                snapshot.forEach((doc) => {
+                    const schedule = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'schedule-card';
+
+                    const startTime = new Date(schedule.startTime).toLocaleString();
+                    const expireTime = new Date(schedule.expireTime).toLocaleString();
+
+                    card.innerHTML = `
+                        <div>
+                            <h2>${schedule.title}</h2>
+                            <p><strong>Subject:</strong> ${schedule.subject}</p>
+                            <p><strong>Teacher:</strong> ${schedule.teacher}</p>
+                            <p><strong>Class Level:</strong> ${schedule.classLevel}</p>
+                        </div>
+                        <div>
+                            <p><strong>Starts:</strong> ${startTime}</p>
+                            <p><strong>Ends:</strong> ${expireTime}</p>
+                        </div>
+                    `;
+                    
+                    scheduleContainer.appendChild(card);
+                });
+            }
+        }, (error) => {
+            console.error("Error fetching schedules: ", error);
+            loadingMessage.innerText = 'Failed to load schedules. Please try again later.';
+        });
+    </script>
+
+</body>
+</html>            display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
