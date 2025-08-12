@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Docin — Files</title>
+<style>
+  :root{--accent:#1b6ef6;--bg:#f3f6fb;--card:#fff;--muted:#6b7280}
+  body{font-family:Inter, system-ui, Arial, sans-serif;margin:0;background:var(--bg);color:#111}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fff;border-bottom:1px solid #e6e9ef}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#5ec0ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+  .container{max-width:980px;margin:28px auto;padding:0 16px}
+  .controls{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+  button, .btn {background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+  .btn.secondary{background:#fff;color:var(--accent);border:1px solid #dfe7fb}
+  .file-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .card{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,0.03);border:1px solid #eef2ff;display:flex;flex-direction:column;gap:8px}
+  .fname{font-weight:600}
+  .meta{font-size:12px;color:var(--muted)}
+  .card .actions{margin-top:auto;display:flex;gap:6px}
+  a.open-link{flex:1;text-decoration:none}
+  input.search{padding:8px;border-radius:8px;border:1px solid #dde7f9}
+  .small{font-size:13px;color:var(--muted)}
+  footer{max-width:980px;margin:18px auto;padding:12px 16px;color:var(--muted);font-size:13px}
+  label.file-import{display:inline-block;padding:8px 10px;border-radius:8px;background:#fff;border:1px dashed #cddbf8;color:var(--accent);cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">Di</div>
+    <div>
+      <div style="font-weight:700">Docin</div>
+      <div style="font-size:13px;color:var(--muted)">Local .docin editor</div>
+    </div>
+  </div>
+  <div>
+    <button id="newBtn">+ New</button>
+    <label class="file-import" title="Import .docin file">
+      Import <input id="importFile" type="file" accept=".docin" style="display:none"/>
+    </label>
+  </div>
+</header>
+
+<div class="container">
+  <div class="controls">
+    <input id="search" class="search" placeholder="Search files..." />
+    <div style="flex:1"></div>
+    <button class="btn secondary" id="downloadAll">Download all (.zip not supported offline)</button>
+  </div>
+
+  <div id="emptyMessage" style="padding:18px;background:#fff;border-radius:8px;display:none">
+    <div style="font-weight:700">No documents yet</div>
+    <div class="small">Click <strong>New</strong> to create a document — it will open in the editor.</div>
+  </div>
+
+  <div id="list" class="file-list" aria-live="polite"></div>
+</div>
+
+<footer>Files are saved locally in your browser (localStorage). You can export/import files with the <code>.docin</code> extension.</footer>
+
+<script>
+/* -- storage helpers -- */
+const STORAGE_KEY = 'docin_files_v1';
+
+function loadAll() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return {};
+  try { return JSON.parse(raw) } catch(e){ return {} }
+}
+function saveAll(obj){ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
+
+function makeId(){ return 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2,9); }
+function nowIso(){ return new Date().toISOString(); }
+
+function sanitizeHTML(html){
+  // quick sanitize: remove <script> tags and attributes like onerror/onload
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  doc.querySelectorAll('script').forEach(n=>n.remove());
+  // remove inline event handlers
+  [...doc.querySelectorAll('*')].forEach(el=>{
+    for(const attr of [...el.attributes]){
+      if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
+    }
+  });
+  return doc.body.innerHTML;
+}
+
+/* -- UI logic -- */
+const listEl = document.getElementById('list');
+const emptyMessage = document.getElementById('emptyMessage');
+const search = document.getElementById('search');
+
+function renderList(filter='') {
+  const files = loadAll();
+  const arr = Object.values(files).sort((a,b)=> b.modified.localeCompare(a.modified));
+  const shown = arr.filter(f => f.name.toLowerCase().includes(filter.toLowerCase()));
+  listEl.innerHTML = '';
+  if (shown.length === 0){
+    emptyMessage.style.display = arr.length ? 'none' : 'block';
+  } else emptyMessage.style.display = 'none';
+
+  shown.forEach(file=>{
+    const card = document.createElement('div'); card.className='card';
+    const name = document.createElement('div'); name.className='fname'; name.textContent = file.name;
+    const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `Modified ${new Date(file.modified).toLocaleString()}`;
+    const excerpt = document.createElement('div'); excerpt.className='small'; excerpt.innerHTML = (file.content ? (file.content.replace(/(<[^>]*>)/g,'').slice(0,140)) : '<i>Empty document</i>');
+    const actions = document.createElement('div'); actions.className='actions';
+
+    const openLink = document.createElement('a');
+    openLink.className = 'open-link';
+    openLink.href = `2.html?id=${encodeURIComponent(file.id)}`;
+    openLink.textContent = 'Open';
+    openLink.addEventListener('click', (e)=>{ /* let navigation happen */ });
+
+    const download = document.createElement('button');
+    download.textContent = 'Download';
+    download.className='btn secondary';
+    download.addEventListener('click', ()=> downloadDocin(file));
+
+    const rename = document.createElement('button');
+    rename.textContent = 'Rename';
+    rename.className='btn secondary';
+    rename.addEventListener('click', ()=> {
+      const v = prompt('Rename file', file.name);
+      if (v && v.trim()){
+        const all = loadAll(); all[file.id].name = v.trim(); all[file.id].modified = nowIso();
+        saveAll(all); renderList(search.value);
+      }
+    });
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.className='btn';
+    del.style.background='#ef4444';
+    del.addEventListener('click', ()=> {
+      if (!confirm('Delete "'+file.name+'"?')) return;
+      const all = loadAll(); delete all[file.id]; saveAll(all); renderList(search.value);
+    });
+
+    actions.appendChild(openLink);
+    actions.appendChild(download);
+    actions.appendChild(rename);
+    actions.appendChild(del);
+
+    card.appendChild(name); card.appendChild(meta); card.appendChild(excerpt); card.appendChild(actions);
+    listEl.appendChild(card);
+  });
+}
+
+function downloadDocin(file){
+  const payload = {
+    version:1,
+    id: file.id,
+    name: file.name,
+    modified: file.modified,
+    content: file.content
+  };
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name.endsWith('.docin') ? file.name : file.name + '.docin';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* -- New file -- */
+document.getElementById('newBtn').addEventListener('click', ()=>{
+  const all = loadAll();
+  const id = makeId();
+  const name = 'Untitled.docin';
+  all[id] = { id, name, content: '<p></p>', modified: nowIso() };
+  saveAll(all);
+  // open editor
+  location.href = `2.html?id=${encodeURIComponent(id)}`;
+});
+
+/* -- Import .docin -- */
+document.getElementById('importFile').addEventListener('change', async (e)=>{
+  const f = e.target.files[0];
+  if (!f) return;
+  if (!f.name.endsWith('.docin')) {
+    if (!confirm('File does not end with .docin extension. Import anyway?') ) { e.target.value=''; return; }
+  }
+  const txt = await f.text();
+  try {
+    const parsed = JSON.parse(txt);
+    if (!parsed.content || !parsed.name) {
+      alert('Invalid .docin file');
+      return;
+    }
+    const all = loadAll();
+    // avoid overwriting: give new id
+    const id = makeId();
+    all[id] = { id, name: parsed.name, content: sanitizeHTML(parsed.content), modified: parsed.modified || nowIso() };
+    saveAll(all);
+    renderList(search.value);
+    alert('Imported as ' + parsed.name);
+  } catch (err) {
+    alert('Could not import: ' + err.message);
+  } finally { e.target.value = ''; }
+});
+
+/* -- Download all (simple) -- */
+document.getElementById('downloadAll').addEventListener('click', ()=>{
+  const all = loadAll();
+  const ids = Object.keys(all);
+  if (!ids.length) return alert('No files to download.');
+  // If many files, advise user to export individually (no zip created offline).
+  if (!confirm('This will download each file individually. For many files consider exporting one-by-one. Continue?')) return;
+  ids.forEach(id => downloadDocin(all[id]));
+});
+
+/* -- startup -- */
+search.addEventListener('input', ()=> renderList(search.value));
+renderList('');
+</script>
+</body>
+  </html>
+  
