@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Docin — Editor</title>
+<style>
+  :root{--accent:#1b6ef6;--bg:#eef6ff}
+  body{margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg)}
+  .topbar{display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff;border-bottom:1px solid #e6e9ef}
+  .title{font-weight:700}
+  .toolbar{display:flex;gap:6px;align-items:center;padding:8px;background:#f8fbff;border-bottom:1px solid #e6eefb}
+  .toolbar button{padding:6px 8px;border-radius:6px;border:0;background:#fff;cursor:pointer}
+  .toolbar select, .toolbar input[type="color"]{padding:6px;border-radius:6px;border:1px solid #dbeafe;background:#fff}
+  .editor-wrap{max-width:1000px;margin:18px auto;padding:12px}
+  .editor{min-height:480px;background:#fff;padding:18px;border-radius:8px;border:1px solid #e6eefb;overflow:auto}
+  .actions{display:flex;gap:8px;margin-left:auto}
+  .btn{background:var(--accent);color:white;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
+  .btn.secondary{background:#fff;color:var(--accent);border:1px solid #dfe7fb}
+  footer{max-width:1000px;margin:18px auto;padding:6px 12px;color:#666}
+  .muted{color:#666;font-size:13px;margin-left:8px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div style="display:flex;gap:12px;align-items:center">
+    <a href="1.html" title="Back to files" style="text-decoration:none;color:var(--accent)">← Files</a>
+    <div class="title" id="docName">Loading…</div>
+    <div class="muted" id="modified"> </div>
+  </div>
+  <div class="actions">
+    <button id="saveBtn" class="btn">Save</button>
+    <button id="downloadBtn" class="btn secondary">Download .docin</button>
+    <input id="importDocin" type="file" accept=".docin" style="display:none"/>
+    <button id="importBtn" class="btn secondary">Import .docin</button>
+  </div>
+</div>
+
+<div class="toolbar" role="toolbar" aria-label="Editor toolbar">
+  <button onclick="exec('undo')" title="Undo (Ctrl+Z)">↶</button>
+  <button onclick="exec('redo')" title="Redo (Ctrl+Y)">↷</button>
+  <button onclick="exec('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+  <button onclick="exec('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+  <button onclick="exec('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+  <select onchange="exec('formatBlock', this.value)">
+    <option value="">Normal</option>
+    <option value="h1">Heading 1</option>
+    <option value="h2">Heading 2</option>
+    <option value="h3">Heading 3</option>
+    <option value="pre">Preformatted</option>
+  </select>
+  <select onchange="exec('fontSize', this.value)">
+    <option value="3">Normal</option>
+    <option value="1">Small</option>
+    <option value="4">Large</option>
+    <option value="5">Larger</option>
+  </select>
+  <button onclick="exec('insertUnorderedList')">• List</button>
+  <button onclick="exec('insertOrderedList')">1. List</button>
+  <button onclick="exec('justifyLeft')">Left</button>
+  <button onclick="exec('justifyCenter')">Center</button>
+  <button onclick="exec('justifyRight')">Right</button>
+  <button onclick="insertLink()">Link</button>
+  <input type="file" id="imgFile" accept="image/*" style="display:none" />
+  <button onclick="document.getElementById('imgFile').click()">Image</button>
+  <div style="flex:1"></div>
+  <input id="nameInput" style="padding:6px;border-radius:6px;border:1px solid #dbeafe" />
+</div>
+
+<div class="editor-wrap">
+  <div id="editor" class="editor" contenteditable="true" spellcheck="true" aria-label="Document editor"></div>
+</div>
+
+<footer>
+  <span class="muted">Saved locally in your browser. Files use the <code>.docin</code> JSON format. Autosaves every 5s while editing.</span>
+</footer>
+
+<script>
+/* Storage helpers same as 1.html */
+const STORAGE_KEY = 'docin_files_v1';
+function loadAll(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}') }catch(e){return{}}}
+function saveAll(obj){ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
+function nowIso(){ return new Date().toISOString(); }
+
+function sanitizeHTML(html){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  doc.querySelectorAll('script').forEach(n=>n.remove());
+  [...doc.querySelectorAll('*')].forEach(el=>{
+    for(const attr of [...el.attributes]) if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
+  });
+  return doc.body.innerHTML;
+}
+
+/* Document loading */
+const editor = document.getElementById('editor');
+const docNameEl = document.getElementById('docName');
+const modifiedEl = document.getElementById('modified');
+const nameInput = document.getElementById('nameInput');
+
+let currentId = null;
+let currentFile = null;
+let lastSavedContent = '';
+let autosaveTimer = null;
+
+function getIdFromQuery(){
+  const p = new URLSearchParams(location.search);
+  return p.get('id');
+}
+
+/* load by id */
+function loadDocument(id){
+  const all = loadAll();
+  if (!all[id]) {
+    alert('Document not found.');
+    location.href = '1.html';
+    return;
+  }
+  currentId = id;
+  currentFile = all[id];
+  docNameEl.textContent = currentFile.name;
+  nameInput.value = currentFile.name;
+  editor.innerHTML = currentFile.content || '<p></p>';
+  lastSavedContent = editor.innerHTML;
+  modifiedEl.textContent = 'Modified ' + new Date(currentFile.modified).toLocaleString();
+  history.replaceState({}, '', `2.html?id=${encodeURIComponent(id)}`);
+}
+
+/* Save */
+function saveNow(showToast=true){
+  if (!currentId) return;
+  const all = loadAll();
+  const content = sanitizeHTML(editor.innerHTML);
+  all[currentId].content = content;
+  all[currentId].name = nameInput.value || all[currentId].name;
+  all[currentId].modified = nowIso();
+  saveAll(all);
+  lastSavedContent = content;
+  modifiedEl.textContent = 'Modified ' + new Date(all[currentId].modified).toLocaleString();
+  docNameEl.textContent = all[currentId].name;
+  if (showToast) {
+    // minimal toast
+    console.log('Saved', all[currentId].name);
+  }
+}
+
+/* Exec command wrapper */
+function exec(cmd, val=null){ document.execCommand(cmd, false, val); editor.focus(); }
+
+/* Link and image */
+function insertLink(){
+  const url = prompt('Enter URL (https://...)', 'https://');
+  if (url) exec('createLink', url);
+}
+document.getElementById('imgFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=> {
+    // insert image as data URL
+    exec('insertImage', reader.result);
+  };
+  reader.readAsDataURL(f);
+  e.target.value = '';
+});
+
+/* Download .docin */
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  if (!currentFile) return;
+  const all = loadAll();
+  // ensure latest content is saved into the payload
+  const payload = {
+    version:1,
+    id: currentId,
+    name: nameInput.value || currentFile.name,
+    modified: nowIso(),
+    content: sanitizeHTML(editor.innerHTML)
+  };
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = (payload.name.endsWith('.docin') ? payload.name : payload.name + '.docin');
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* Import .docin into this document (replace) */
+document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importDocin').click());
+document.getElementById('importDocin').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if (!f) return;
+  const txt = await f.text();
+  try {
+    const parsed = JSON.parse(txt);
+    if (!parsed.content) throw new Error('Invalid .docin');
+    editor.innerHTML = sanitizeHTML(parsed.content);
+    nameInput.value = parsed.name || nameInput.value;
+    alert('Imported into current document.');
+  } catch(err){ alert('Import error: '+err.message); }
+  e.target.value='';
+});
+
+/* auto-save every 5 seconds if changed */
+function startAutosave(){
+  if (autosaveTimer) clearInterval(autosaveTimer);
+  autosaveTimer = setInterval(()=>{
+    if (!currentId) return;
+    const cur = sanitizeHTML(editor.innerHTML);
+    if (cur !== lastSavedContent) saveNow(false);
+  }, 5000);
+}
+
+/* handle keyboard shortcuts for save */
+document.addEventListener('keydown', (e)=>{
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault(); saveNow(); alert('Saved.');
+  }
+});
+
+/* Warn on leaving unsaved changes */
+window.addEventListener('beforeunload', (ev)=>{
+  const cur = sanitizeHTML(editor.innerHTML);
+  if (cur !== lastSavedContent) {
+    ev.preventDefault();
+    ev.returnValue = 'You have unsaved changes.';
+    return 'You have unsaved changes.';
+  }
+});
+
+/* initialize */
+const id = getIdFromQuery();
+if (!id) {
+  alert('No document id supplied. Returning to file list.');
+  location.href = '1.html';
+} else {
+  loadDocument(id);
+  startAutosave();
+}
+
+/* save button */
+document.getElementById('saveBtn').addEventListener('click', ()=> {
+  saveNow(true);
+  alert('Saved.');
+});
+
+/* rename when nameInput changes (live rename) */
+let nameTimer = null;
+nameInput.addEventListener('input', ()=> {
+  if (nameTimer) clearTimeout(nameTimer);
+  nameTimer = setTimeout(()=> {
+    if (!currentId) return;
+    const all = loadAll();
+    all[currentId].name = nameInput.value || all[currentId].name;
+    all[currentId].modified = nowIso();
+    saveAll(all);
+    docNameEl.textContent = all[currentId].name;
+    modifiedEl.textContent = 'Modified ' + new Date(all[currentId].modified).toLocaleString();
+  }, 700);
+});
+</script>
+</body>
+</html>
