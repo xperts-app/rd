@@ -47,7 +47,7 @@
   <div class="controls">
     <input id="search" class="search" placeholder="Search files..." />
     <div style="flex:1"></div>
-    <button class="btn secondary" id="downloadAll">Download all (.zip not supported offline)</button>
+    <button class="btn secondary" id="downloadAll">Download all</button>
   </div>
 
   <div id="emptyMessage" style="padding:18px;background:#fff;border-radius:8px;display:none">
@@ -58,166 +58,48 @@
   <div id="list" class="file-list" aria-live="polite"></div>
 </div>
 
-<footer>Files are saved locally in your browser (localStorage). You can export/import files with the <code>.docin</code> extension.</footer>
+<footer>Files are saved locally in your browser. Export/import uses encrypted <code>.docin</code> files.</footer>
 
 <script>
-/* -- storage helpers -- */
+/* ===== Encryption helpers ===== */
+const ENC_KEY_STRING = 'docin_secret_key_2025';
+let ENC_KEY_OBJ = null;
+function strToUint8(str){ return new TextEncoder().encode(str); }
+function uint8ToStr(buf){ return new TextDecoder().decode(buf); }
+function bytesToBase64(bytes){ let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b)); return btoa(bin);}
+function base64ToBytes(base64){ let bin=atob(base64); let bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return bytes;}
+async function getKey(){ if(ENC_KEY_OBJ) return ENC_KEY_OBJ; ENC_KEY_OBJ=await crypto.subtle.importKey('raw',strToUint8(ENC_KEY_STRING.padEnd(32,' ')).slice(0,32),{name:'AES-GCM'},false,['encrypt','decrypt']); return ENC_KEY_OBJ;}
+async function encryptString(plain){ const key=await getKey(); const iv=crypto.getRandomValues(new Uint8Array(12)); const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,strToUint8(plain)); const encBytes=new Uint8Array(enc); const full=new Uint8Array(iv.length+encBytes.length); full.set(iv,0); full.set(encBytes,iv.length); return bytesToBase64(full);}
+async function decryptString(b64){ const key=await getKey(); const full=base64ToBytes(b64); const iv=full.slice(0,12); const data=full.slice(12); const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data); return uint8ToStr(new Uint8Array(dec)); }
+
+/* ===== Storage helpers ===== */
 const STORAGE_KEY = 'docin_files_v1';
-
-function loadAll() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return {};
-  try { return JSON.parse(raw) } catch(e){ return {} }
-}
+function loadAll(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}') }catch(e){return{}}}
 function saveAll(obj){ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
-
 function makeId(){ return 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2,9); }
 function nowIso(){ return new Date().toISOString(); }
+function sanitizeHTML(html){ const p=new DOMParser(); const d=p.parseFromString(html,'text/html'); d.querySelectorAll('script').forEach(n=>n.remove()); [...d.querySelectorAll('*')].forEach(el=>{for(const a of [...el.attributes]) if(a.name.startsWith('on')) el.removeAttribute(a.name)}); return d.body.innerHTML; }
 
-function sanitizeHTML(html){
-  // quick sanitize: remove <script> tags and attributes like onerror/onload
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  doc.querySelectorAll('script').forEach(n=>n.remove());
-  // remove inline event handlers
-  [...doc.querySelectorAll('*')].forEach(el=>{
-    for(const attr of [...el.attributes]){
-      if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-    }
-  });
-  return doc.body.innerHTML;
-}
+/* ===== UI logic ===== */
+const listEl=document.getElementById('list'); const emptyMessage=document.getElementById('emptyMessage'); const search=document.getElementById('search');
+function renderList(filter=''){ const files=loadAll(); const arr=Object.values(files).sort((a,b)=>b.modified.localeCompare(a.modified)); const shown=arr.filter(f=>f.name.toLowerCase().includes(filter.toLowerCase())); listEl.innerHTML=''; emptyMessage.style.display= shown.length===0 && arr.length===0 ? 'block':'none';
+shown.forEach(file=>{ const card=document.createElement('div'); card.className='card'; const name=document.createElement('div'); name.className='fname'; name.textContent=file.name; const meta=document.createElement('div'); meta.className='meta'; meta.textContent=`Modified ${new Date(file.modified).toLocaleString()}`; const excerpt=document.createElement('div'); excerpt.className='small'; excerpt.innerHTML=(file.content ? file.content.replace(/(<[^>]*>)/g,'').slice(0,140) : '<i>Empty</i>'); const actions=document.createElement('div'); actions.className='actions';
+const openLink=document.createElement('a'); openLink.className='open-link'; openLink.href=`2.html?id=${encodeURIComponent(file.id)}`; openLink.textContent='Open';
+const download=document.createElement('button'); download.textContent='Download'; download.className='btn secondary'; download.onclick=()=>downloadDocin(file);
+const rename=document.createElement('button'); rename.textContent='Rename'; rename.className='btn secondary'; rename.onclick=()=>{ const v=prompt('Rename file', file.name); if(v&&v.trim()){ const all=loadAll(); all[file.id].name=v.trim(); all[file.id].modified=nowIso(); saveAll(all); renderList(search.value);} };
+const del=document.createElement('button'); del.textContent='Delete'; del.className='btn'; del.style.background='#ef4444'; del.onclick=()=>{ if(!confirm('Delete "'+file.name+'"?')) return; const all=loadAll(); delete all[file.id]; saveAll(all); renderList(search.value); };
+actions.append(openLink,download,rename,del); card.append(name,meta,excerpt,actions); listEl.append(card); }); }
 
-/* -- UI logic -- */
-const listEl = document.getElementById('list');
-const emptyMessage = document.getElementById('emptyMessage');
-const search = document.getElementById('search');
+async function downloadDocin(file){ const payload={version:1,id:file.id,name:file.name,modified:file.modified,content:file.content}; const encData=await encryptString(JSON.stringify(payload)); const blob=new Blob([encData],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=file.name.endsWith('.docin')?file.name:file.name+'.docin'; document.body.appendChild(a); a.click(); a.remove(); }
 
-function renderList(filter='') {
-  const files = loadAll();
-  const arr = Object.values(files).sort((a,b)=> b.modified.localeCompare(a.modified));
-  const shown = arr.filter(f => f.name.toLowerCase().includes(filter.toLowerCase()));
-  listEl.innerHTML = '';
-  if (shown.length === 0){
-    emptyMessage.style.display = arr.length ? 'none' : 'block';
-  } else emptyMessage.style.display = 'none';
+/* ===== Events ===== */
+document.getElementById('newBtn').onclick=()=>{ const all=loadAll(); const id=makeId(); all[id]={id,name:'Untitled.docin',content:'<p></p>',modified:nowIso()}; saveAll(all); location.href=`2.html?id=${encodeURIComponent(id)}`; };
+document.getElementById('importFile').addEventListener('change',async(e)=>{ const f=e.target.files[0]; if(!f) return; const txt=await f.text(); try{ const decrypted=await decryptString(txt); const parsed=JSON.parse(decrypted); if(!parsed.content||!parsed.name) throw new Error('Invalid file'); const all=loadAll(); const id=makeId(); all[id]={id,name:parsed.name,content:sanitizeHTML(parsed.content),modified:parsed.modified||nowIso()}; saveAll(all); renderList(search.value); alert('Imported '+parsed.name); }catch(err){ alert('Could not import: '+err.message); } e.target.value=''; });
+document.getElementById('downloadAll').onclick=()=>{ const all=loadAll(); if(!Object.keys(all).length) return alert('No files.'); Object.values(all).forEach(f=>downloadDocin(f)); };
+search.oninput=()=>renderList(search.value);
 
-  shown.forEach(file=>{
-    const card = document.createElement('div'); card.className='card';
-    const name = document.createElement('div'); name.className='fname'; name.textContent = file.name;
-    const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `Modified ${new Date(file.modified).toLocaleString()}`;
-    const excerpt = document.createElement('div'); excerpt.className='small'; excerpt.innerHTML = (file.content ? (file.content.replace(/(<[^>]*>)/g,'').slice(0,140)) : '<i>Empty document</i>');
-    const actions = document.createElement('div'); actions.className='actions';
-
-    const openLink = document.createElement('a');
-    openLink.className = 'open-link';
-    openLink.href = `2.html?id=${encodeURIComponent(file.id)}`;
-    openLink.textContent = 'Open';
-    openLink.addEventListener('click', (e)=>{ /* let navigation happen */ });
-
-    const download = document.createElement('button');
-    download.textContent = 'Download';
-    download.className='btn secondary';
-    download.addEventListener('click', ()=> downloadDocin(file));
-
-    const rename = document.createElement('button');
-    rename.textContent = 'Rename';
-    rename.className='btn secondary';
-    rename.addEventListener('click', ()=> {
-      const v = prompt('Rename file', file.name);
-      if (v && v.trim()){
-        const all = loadAll(); all[file.id].name = v.trim(); all[file.id].modified = nowIso();
-        saveAll(all); renderList(search.value);
-      }
-    });
-
-    const del = document.createElement('button');
-    del.textContent = 'Delete';
-    del.className='btn';
-    del.style.background='#ef4444';
-    del.addEventListener('click', ()=> {
-      if (!confirm('Delete "'+file.name+'"?')) return;
-      const all = loadAll(); delete all[file.id]; saveAll(all); renderList(search.value);
-    });
-
-    actions.appendChild(openLink);
-    actions.appendChild(download);
-    actions.appendChild(rename);
-    actions.appendChild(del);
-
-    card.appendChild(name); card.appendChild(meta); card.appendChild(excerpt); card.appendChild(actions);
-    listEl.appendChild(card);
-  });
-}
-
-function downloadDocin(file){
-  const payload = {
-    version:1,
-    id: file.id,
-    name: file.name,
-    modified: file.modified,
-    content: file.content
-  };
-  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = file.name.endsWith('.docin') ? file.name : file.name + '.docin';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
-/* -- New file -- */
-document.getElementById('newBtn').addEventListener('click', ()=>{
-  const all = loadAll();
-  const id = makeId();
-  const name = 'Untitled.docin';
-  all[id] = { id, name, content: '<p></p>', modified: nowIso() };
-  saveAll(all);
-  // open editor
-  location.href = `2.html?id=${encodeURIComponent(id)}`;
-});
-
-/* -- Import .docin -- */
-document.getElementById('importFile').addEventListener('change', async (e)=>{
-  const f = e.target.files[0];
-  if (!f) return;
-  if (!f.name.endsWith('.docin')) {
-    if (!confirm('File does not end with .docin extension. Import anyway?') ) { e.target.value=''; return; }
-  }
-  const txt = await f.text();
-  try {
-    const parsed = JSON.parse(txt);
-    if (!parsed.content || !parsed.name) {
-      alert('Invalid .docin file');
-      return;
-    }
-    const all = loadAll();
-    // avoid overwriting: give new id
-    const id = makeId();
-    all[id] = { id, name: parsed.name, content: sanitizeHTML(parsed.content), modified: parsed.modified || nowIso() };
-    saveAll(all);
-    renderList(search.value);
-    alert('Imported as ' + parsed.name);
-  } catch (err) {
-    alert('Could not import: ' + err.message);
-  } finally { e.target.value = ''; }
-});
-
-/* -- Download all (simple) -- */
-document.getElementById('downloadAll').addEventListener('click', ()=>{
-  const all = loadAll();
-  const ids = Object.keys(all);
-  if (!ids.length) return alert('No files to download.');
-  // If many files, advise user to export individually (no zip created offline).
-  if (!confirm('This will download each file individually. For many files consider exporting one-by-one. Continue?')) return;
-  ids.forEach(id => downloadDocin(all[id]));
-});
-
-/* -- startup -- */
-search.addEventListener('input', ()=> renderList(search.value));
+/* ===== Init ===== */
 renderList('');
 </script>
 </body>
-  </html>
-  
+</html>
