@@ -1,68 +1,53 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Docin — Editor</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Docin — Editor (Secure)</title>
 <style>
-  :root{--accent:#1b6ef6;--bg:#eef6ff}
-  body{margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg)}
+  :root{--accent:#0f62fe;--bg:#eef6ff}
+  body{margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg);color:#081022}
   .topbar{display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff;border-bottom:1px solid #e6e9ef}
   .title{font-weight:700}
   .toolbar{display:flex;gap:6px;align-items:center;padding:8px;background:#f8fbff;border-bottom:1px solid #e6eefb}
   .toolbar button{padding:6px 8px;border-radius:6px;border:0;background:#fff;cursor:pointer}
-  .toolbar select, .toolbar input[type="color"]{padding:6px;border-radius:6px;border:1px solid #dbeafe;background:#fff}
   .editor-wrap{max-width:1000px;margin:18px auto;padding:12px}
-  .editor{min-height:480px;background:#fff;padding:18px;border-radius:8px;border:1px solid #e6eefb;overflow:auto}
+  .editor{min-height:520px;background:#fff;padding:18px;border-radius:8px;border:1px solid #e6eefb;overflow:auto}
   .actions{display:flex;gap:8px;margin-left:auto}
   .btn{background:var(--accent);color:white;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
   .btn.secondary{background:#fff;color:var(--accent);border:1px solid #dfe7fb}
   footer{max-width:1000px;margin:18px auto;padding:6px 12px;color:#666}
   .muted{color:#666;font-size:13px;margin-left:8px}
+  .small{font-size:13px;color:#666}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div style="display:flex;gap:12px;align-items:center">
-    <a href="1.html" title="Back to files" style="text-decoration:none;color:var(--accent)">← Files</a>
-    <div class="title" id="docName">Loading…</div>
-    <div class="muted" id="modified"> </div>
-  </div>
+  <a href="1.html" title="Back to files" style="text-decoration:none;color:var(--accent)">← Files</a>
+  <div class="title" id="docName">Loading…</div>
+  <div class="muted" id="modified"></div>
+  <div style="flex:1"></div>
   <div class="actions">
+    <button id="protectBtn" class="btn secondary">Protect / Change Password</button>
     <button id="saveBtn" class="btn">Save</button>
     <button id="downloadBtn" class="btn secondary">Download .docin</button>
-    <input id="importDocin" type="file" accept=".docin" style="display:none"/>
-    <button id="importBtn" class="btn secondary">Import .docin</button>
   </div>
 </div>
 
 <div class="toolbar" role="toolbar" aria-label="Editor toolbar">
   <button onclick="exec('undo')" title="Undo (Ctrl+Z)">↶</button>
   <button onclick="exec('redo')" title="Redo (Ctrl+Y)">↷</button>
-  <button onclick="exec('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
-  <button onclick="exec('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
-  <button onclick="exec('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+  <button onclick="exec('bold')"><b>B</b></button>
+  <button onclick="exec('italic')"><i>I</i></button>
+  <button onclick="exec('underline')"><u>U</u></button>
   <select onchange="exec('formatBlock', this.value)">
     <option value="">Normal</option>
     <option value="h1">Heading 1</option>
     <option value="h2">Heading 2</option>
-    <option value="h3">Heading 3</option>
-    <option value="pre">Preformatted</option>
   </select>
-  <select onchange="exec('fontSize', this.value)">
-    <option value="3">Normal</option>
-    <option value="1">Small</option>
-    <option value="4">Large</option>
-    <option value="5">Larger</option>
-  </select>
-  <button onclick="exec('insertUnorderedList')">• List</button>
-  <button onclick="exec('insertOrderedList')">1. List</button>
-  <button onclick="exec('justifyLeft')">Left</button>
-  <button onclick="exec('justifyCenter')">Center</button>
-  <button onclick="exec('justifyRight')">Right</button>
   <button onclick="insertLink()">Link</button>
-  <input type="file" id="imgFile" accept="image/*" style="display:none" />
   <button onclick="document.getElementById('imgFile').click()">Image</button>
+  <input type="file" id="imgFile" accept="image/*" style="display:none"/>
   <div style="flex:1"></div>
   <input id="nameInput" style="padding:6px;border-radius:6px;border:1px solid #dbeafe" />
 </div>
@@ -72,27 +57,63 @@
 </div>
 
 <footer>
-  <span class="muted">Saved locally in your browser. Files use the <code>.docin</code> JSON format. Autosaves every 5s while editing.</span>
+  <div class="small">Autosaves locally. Files are stored encrypted. Remember your passwords — no recovery possible.</div>
 </footer>
 
 <script>
-/* Storage helpers same as 1.html */
-const STORAGE_KEY = 'docin_files_v1';
-function loadAll(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}') }catch(e){return{}}}
-function saveAll(obj){ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
-function nowIso(){ return new Date().toISOString(); }
-
-function sanitizeHTML(html){
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  doc.querySelectorAll('script').forEach(n=>n.remove());
-  [...doc.querySelectorAll('*')].forEach(el=>{
-    for(const attr of [...el.attributes]) if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-  });
-  return doc.body.innerHTML;
+/* --------------------------
+   Crypto utilities (same as file manager)
+   -------------------------- */
+const KDF_ITERATIONS = 200000;
+const AES_IV_BYTES = 12;
+const STORAGE_KEY = 'docin_files_secure_v1';
+function strToBytes(s){ return new TextEncoder().encode(s); }
+function bytesToStr(b){ return new TextDecoder().decode(b); }
+function bytesToB64(b){ let binary=''; const arr=new Uint8Array(b); for(let i=0;i<arr.length;i++) binary+=String.fromCharCode(arr[i]); return btoa(binary); }
+function b64ToBytes(s){ const bin=atob(s); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return bytes; }
+function randBytes(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return b; }
+async function deriveKeyFromPassword(password, saltB64, iterations=KDF_ITERATIONS){
+  const salt = b64ToBytes(saltB64);
+  const baseKey = await crypto.subtle.importKey('raw', strToBytes(password), {name:'PBKDF2'}, false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations, hash:'SHA-256'}, baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  return key;
+}
+async function encryptWithPassword(plaintextStr, password){
+  const salt = randBytes(16); const saltB64 = bytesToB64(salt);
+  const iterations = KDF_ITERATIONS;
+  const key = await deriveKeyFromPassword(password, saltB64, iterations);
+  const iv = randBytes(AES_IV_BYTES);
+  const enc = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, strToBytes(plaintextStr));
+  const header = { v:1, alg:'AES-GCM', kdf:{name:'PBKDF2', hash:'SHA-256', salt: saltB64, iterations}, created:(new Date()).toISOString() };
+  const headerB64 = bytesToB64(strToBytes(JSON.stringify(header)));
+  const full = new Uint8Array(iv.length + enc.byteLength);
+  full.set(iv,0); full.set(new Uint8Array(enc), iv.length);
+  const cipherB64 = bytesToB64(full);
+  return headerB64 + '.' + cipherB64;
+}
+async function decryptWithPassword(payloadStr, password){
+  const parts = payloadStr.split('.'); if (parts.length!==2) throw new Error('Invalid payload');
+  const header = JSON.parse(bytesToStr(b64ToBytes(parts[0])));
+  const saltB64 = header.kdf.salt; const iterations = header.kdf.iterations || KDF_ITERATIONS;
+  const key = await deriveKeyFromPassword(password, saltB64, iterations);
+  const full = b64ToBytes(parts[1]);
+  const iv = full.slice(0, AES_IV_BYTES); const data = full.slice(AES_IV_BYTES);
+  const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, data);
+  return bytesToStr(new Uint8Array(dec));
 }
 
-/* Document loading */
+/* --------------------------
+   Local storage helpers
+   -------------------------- */
+function loadMap(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){return{}} }
+function saveMap(m){ localStorage.setItem(STORAGE_KEY, JSON.stringify(m)); }
+const SESSION_PW_KEY = 'docin_session_pw_cache_v1';
+function cachePasswordForSession(id, password){ try{ const m=JSON.parse(sessionStorage.getItem(SESSION_PW_KEY)||'{}'); m[id]=password; sessionStorage.setItem(SESSION_PW_KEY, JSON.stringify(m)); }catch(e){} }
+function getCachedPassword(id){ try{ const m=JSON.parse(sessionStorage.getItem(SESSION_PW_KEY)||'{}'); return m[id]||null; }catch(e){return null} }
+
+/* --------------------------
+   Editor logic
+   -------------------------- */
 const editor = document.getElementById('editor');
 const docNameEl = document.getElementById('docName');
 const modifiedEl = document.getElementById('modified');
@@ -103,156 +124,192 @@ let currentFile = null;
 let lastSavedContent = '';
 let autosaveTimer = null;
 
-function getIdFromQuery(){
-  const p = new URLSearchParams(location.search);
-  return p.get('id');
-}
+function getIdFromQuery(){ const p=new URLSearchParams(location.search); return p.get('id'); }
 
-/* load by id */
-function loadDocument(id){
-  const all = loadAll();
-  if (!all[id]) {
-    alert('Document not found.');
-    location.href = '1.html';
-    return;
-  }
+/* On load: the file manager saved plaintext payload into sessionStorage under key 'docin_open_payload_'+id for immediate open.
+   If not present, we will try to decrypt using cached session password (user might have set it).
+*/
+async function init(){
+  const id = getIdFromQuery();
+  if (!id) { alert('No document specified.'); location.href='1.html'; return; }
   currentId = id;
-  currentFile = all[id];
+  const map = loadMap();
+  const file = map[id];
+  if (!file){ alert('Document not found.'); location.href='1.html'; return; }
+  // try to get plaintext from sessionStorage
+  const sessKey = 'docin_open_payload_' + id;
+  let plain = sessionStorage.getItem(sessKey);
+  if (!plain){
+    // try cached password
+    const pw = getCachedPassword(id) || null;
+    if (!pw){
+      // ask user
+      const ask = prompt('Enter password to open "'+file.name+'" (or leave empty to cancel):');
+      if (ask === null) { location.href='1.html'; return; }
+      try { plain = await decryptWithPassword(file.encrypted, ask); cachePasswordForSession(id, ask); } catch(e){ alert('Decryption failed: '+(e.message||e)); location.href='1.html'; return; }
+    } else {
+      try { plain = await decryptWithPassword(file.encrypted, pw); } catch(e){ // cached password invalid
+        const ask = prompt('Cached password invalid. Enter password to open:');
+        if (ask===null) { location.href='1.html'; return; }
+        try { plain = await decryptWithPassword(file.encrypted, ask); cachePasswordForSession(id, ask); } catch(e2){ alert('Decryption failed.'); location.href='1.html'; return; }
+      }
+    }
+  }
+  // store the plaintext into session for later quick reloads
+  sessionStorage.setItem(sessKey, plain);
+  // parse JSON
+  try {
+    const parsed = JSON.parse(plain);
+    currentFile = { id: parsed.id, name: parsed.name, modified: parsed.modified, content: parsed.content };
+  } catch(e){
+    alert('Invalid document data.'); location.href='1.html'; return;
+  }
+  // populate UI
   docNameEl.textContent = currentFile.name;
   nameInput.value = currentFile.name;
   editor.innerHTML = currentFile.content || '<p></p>';
   lastSavedContent = editor.innerHTML;
   modifiedEl.textContent = 'Modified ' + new Date(currentFile.modified).toLocaleString();
-  history.replaceState({}, '', `2.html?id=${encodeURIComponent(id)}`);
-}
-
-/* Save */
-function saveNow(showToast=true){
-  if (!currentId) return;
-  const all = loadAll();
-  const content = sanitizeHTML(editor.innerHTML);
-  all[currentId].content = content;
-  all[currentId].name = nameInput.value || all[currentId].name;
-  all[currentId].modified = nowIso();
-  saveAll(all);
-  lastSavedContent = content;
-  modifiedEl.textContent = 'Modified ' + new Date(all[currentId].modified).toLocaleString();
-  docNameEl.textContent = all[currentId].name;
-  if (showToast) {
-    // minimal toast
-    console.log('Saved', all[currentId].name);
-  }
-}
-
-/* Exec command wrapper */
-function exec(cmd, val=null){ document.execCommand(cmd, false, val); editor.focus(); }
-
-/* Link and image */
-function insertLink(){
-  const url = prompt('Enter URL (https://...)', 'https://');
-  if (url) exec('createLink', url);
-}
-document.getElementById('imgFile').addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if (!f) return;
-  const reader = new FileReader();
-  reader.onload = ()=> {
-    // insert image as data URL
-    exec('insertImage', reader.result);
-  };
-  reader.readAsDataURL(f);
-  e.target.value = '';
-});
-
-/* Download .docin */
-document.getElementById('downloadBtn').addEventListener('click', ()=>{
-  if (!currentFile) return;
-  const all = loadAll();
-  // ensure latest content is saved into the payload
-  const payload = {
-    version:1,
-    id: currentId,
-    name: nameInput.value || currentFile.name,
-    modified: nowIso(),
-    content: sanitizeHTML(editor.innerHTML)
-  };
-  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = (payload.name.endsWith('.docin') ? payload.name : payload.name + '.docin');
-  document.body.appendChild(a); a.click(); a.remove();
-});
-
-/* Import .docin into this document (replace) */
-document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importDocin').click());
-document.getElementById('importDocin').addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if (!f) return;
-  const txt = await f.text();
-  try {
-    const parsed = JSON.parse(txt);
-    if (!parsed.content) throw new Error('Invalid .docin');
-    editor.innerHTML = sanitizeHTML(parsed.content);
-    nameInput.value = parsed.name || nameInput.value;
-    alert('Imported into current document.');
-  } catch(err){ alert('Import error: '+err.message); }
-  e.target.value='';
-});
-
-/* auto-save every 5 seconds if changed */
-function startAutosave(){
-  if (autosaveTimer) clearInterval(autosaveTimer);
-  autosaveTimer = setInterval(()=>{
-    if (!currentId) return;
-    const cur = sanitizeHTML(editor.innerHTML);
-    if (cur !== lastSavedContent) saveNow(false);
-  }, 5000);
-}
-
-/* handle keyboard shortcuts for save */
-document.addEventListener('keydown', (e)=>{
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-    e.preventDefault(); saveNow(); alert('Saved.');
-  }
-});
-
-/* Warn on leaving unsaved changes */
-window.addEventListener('beforeunload', (ev)=>{
-  const cur = sanitizeHTML(editor.innerHTML);
-  if (cur !== lastSavedContent) {
-    ev.preventDefault();
-    ev.returnValue = 'You have unsaved changes.';
-    return 'You have unsaved changes.';
-  }
-});
-
-/* initialize */
-const id = getIdFromQuery();
-if (!id) {
-  alert('No document id supplied. Returning to file list.');
-  location.href = '1.html';
-} else {
-  loadDocument(id);
   startAutosave();
 }
 
-/* save button */
-document.getElementById('saveBtn').addEventListener('click', ()=> {
-  saveNow(true);
-  alert('Saved.');
+/* Save: we modify the plaintext JSON and then re-encrypt and store back into local map.
+   If file is marked protected, keep same protection: we ask cached password or prompt.
+   Otherwise, encrypt with a temp session key (so localStorage remains encrypted).
+*/
+async function saveNow(showAlert=false){
+  if (!currentId) return;
+  const map = loadMap(); const entry = map[currentId];
+  if (!entry) { alert('File not found'); return; }
+  // update plaintext JSON
+  const payloadObj = { version:1, id: currentId, name: nameInput.value || currentFile.name, modified: nowIso(), content: sanitizeHTML(editor.innerHTML) };
+  const payloadStr = JSON.stringify(payloadObj);
+  // if entry.protected is true -> we must encrypt using the file password
+  if (entry.protected){
+    // attempt cached password
+    const cached = getCachedPassword(currentId);
+    let pw = cached;
+    if (!pw) pw = prompt('Enter file password to save changes:');
+    if (!pw) return alert('Save canceled (password required).');
+    try {
+      const enc = await encryptWithPassword(payloadStr, pw);
+      entry.encrypted = enc; entry.modified = nowIso(); entry.name = payloadObj.name;
+      map[currentId] = entry; saveMap(map);
+      lastSavedContent = payloadObj.content;
+      modifiedEl.textContent = 'Modified ' + new Date(entry.modified).toLocaleString();
+      cachePasswordForSession(currentId, pw);
+      if (showAlert) alert('Saved.');
+    } catch(e){ alert('Save failed: '+(e.message||e)); }
+  } else {
+    // not protected: encrypt with a session temp key so localStorage doesn't hold plaintext
+    let temp = getCachedPassword(currentId);
+    if (!temp) { temp = '_local_random_'+Math.random().toString(36).slice(2); cachePasswordForSession(currentId, temp); }
+    const enc = await encryptWithPassword(payloadStr, temp);
+    entry.encrypted = enc; entry.modified = nowIso(); entry.name = payloadObj.name; entry.protected = false;
+    map[currentId] = entry; saveMap(map);
+    lastSavedContent = payloadObj.content;
+    modifiedEl.textContent = 'Modified ' + new Date(entry.modified).toLocaleString();
+    if (showAlert) alert('Saved (session protected).');
+  }
+}
+
+/* utility functions reused */
+function sanitizeHTML(html){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  doc.querySelectorAll('script').forEach(n=>n.remove());
+  [...doc.querySelectorAll('*')].forEach(el=>{ for(const a of [...el.attributes]) if (a.name.startsWith('on')) el.removeAttribute(a.name); });
+  return doc.body.innerHTML;
+}
+function nowIso(){ return (new Date()).toISOString(); }
+
+/* document exec helpers */
+function exec(cmd, val=null){ document.execCommand(cmd, false, val); editor.focus(); }
+function insertLink(){ const url=prompt('Enter URL (https://...)','https://'); if (url) exec('createLink', url); }
+
+/* image insertion */
+document.getElementById('imgFile').addEventListener('change', (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload = ()=> exec('insertImage', reader.result);
+  reader.readAsDataURL(f);
+  e.target.value='';
 });
 
-/* rename when nameInput changes (live rename) */
-let nameTimer = null;
-nameInput.addEventListener('input', ()=> {
-  if (nameTimer) clearTimeout(nameTimer);
-  nameTimer = setTimeout(()=> {
-    if (!currentId) return;
-    const all = loadAll();
-    all[currentId].name = nameInput.value || all[currentId].name;
-    all[currentId].modified = nowIso();
-    saveAll(all);
-    docNameEl.textContent = all[currentId].name;
-    modifiedEl.textContent = 'Modified ' + new Date(all[currentId].modified).toLocaleString();
-  }, 700);
+/* Download .docin (export):
+   We will ask user whether they want to protect export with a password. If yes we encrypt with provided password.
+*/
+document.getElementById('downloadBtn').addEventListener('click', async ()=>{
+  // build plaintext payload JSON
+  const payloadObj = { version:1, id: currentId, name: nameInput.value || currentFile.name, modified: nowIso(), content: sanitizeHTML(editor.innerHTML) };
+  const payloadStr = JSON.stringify(payloadObj);
+  const setpw = confirm('Do you want to set an export password for the downloaded .docin? (recommended)');
+  let payloadEnc;
+  if (setpw){
+    const pw = prompt('Enter EXPORT password (remember it):'); if (pw===null) return;
+    payloadEnc = await encryptWithPassword(payloadStr, pw);
+  } else {
+    // encrypt with random key and warn user (file will be encrypted but no password provided)
+    const tmp = '_export_' + Math.random().toString(36).slice(2);
+    payloadEnc = await encryptWithPassword(payloadStr, tmp);
+    if (!confirm('You did not set an export password. The .docin will still be encrypted with a random key and will not be readable outside this copy. Continue?')) return;
+  }
+  const blob = new Blob([payloadEnc], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  const filename = (nameInput.value || currentFile.name).endsWith('.docin') ? (nameInput.value || currentFile.name) : (nameInput.value || currentFile.name) + '.docin';
+  a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
 });
+
+/* Protect / change password button: re-encrypt with new password or remove password */
+document.getElementById('protectBtn').addEventListener('click', async ()=>{
+  const map = loadMap(); const entry = map[currentId];
+  if (!entry) return alert('File not found');
+  // decrypt with cached or prompt
+  let plain = null;
+  const cached = getCachedPassword(currentId);
+  if (cached){
+    try{ plain = await decryptWithPassword(entry.encrypted, cached); }catch(e){ /* ignore */ }
+  }
+  if (!plain){
+    const cur = prompt('Enter current password to change protection (leave empty if not set):');
+    if (cur === null) return;
+    try { plain = await decryptWithPassword(entry.encrypted, cur); cachePasswordForSession(currentId, cur); } catch(e){ alert('Cannot verify current password.'); return; }
+  }
+  const newpw = prompt('Enter NEW password to protect this file (leave empty to remove protection):');
+  if (newpw === null) return;
+  if (newpw.trim()===''){
+    // remove protection -> encrypt with a session key
+    const temp = '_local_random_' + Math.random().toString(36).slice(2);
+    const enc = await encryptWithPassword(plain, temp);
+    entry.encrypted = enc; entry.protected = false; entry.modified = nowIso(); saveMap(map); cachePasswordForSession(currentId, temp); alert('Protection removed (re-encrypted with session key).');
+  } else {
+    const enc = await encryptWithPassword(plain, newpw);
+    entry.encrypted = enc; entry.protected = true; entry.modified = nowIso(); saveMap(map); cachePasswordForSession(currentId, newpw); alert('Password set/changed.');
+  }
+});
+
+/* Auto-save every 5 seconds if content changed */
+function startAutosave(){ if (autosaveTimer) clearInterval(autosaveTimer); autosaveTimer = setInterval(async ()=>{
+  const cur = sanitizeHTML(editor.innerHTML);
+  if (cur !== lastSavedContent) { await saveNow(false); }
+}, 5000); }
+
+/* Save button */
+document.getElementById('saveBtn').addEventListener('click', ()=> saveNow(true));
+
+/* beforeunload */
+window.addEventListener('beforeunload', (ev)=>{
+  const cur = sanitizeHTML(editor.innerHTML);
+  if (cur !== lastSavedContent) { ev.preventDefault(); ev.returnValue = ''; return ''; }
+});
+
+/* sanitize function reused above */
+
+/* initialize */
+init();
+
 </script>
 </body>
-</html>
+  </html>
+  
